@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        /* --- Sticky Navbar CSS --- */
+        .navbar { 
+            background-color: #0047AB; 
+            display: flex; 
+            width: 100%; 
+            position: sticky; 
+            top: 0; 
+            z-index: 1000; 
+        }
+        .navbar a { 
+            flex: 1; padding: 25px; color: white; text-decoration: none; text-align: center; 
+            background: #003380; border-right: 1px solid #002d72; transition: all 0.3s ease; 
+            font-weight: bold; font-size: 17px; display: block; 
+        }
+        .navbar a:hover { background: #FFD700 !important; color: #0047AB !important; cursor: pointer; }
+
+        /* --- Result Card CSS --- */
+        .result-card { 
+            max-width: 500px; margin: 50px auto; padding: 30px; 
+            background: #ffffff; border-radius: 15px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            border: 2px solid #0047AB; font-family: 'Segoe UI', sans-serif;
+        }
+        .result-card h3 { color: #0047AB; text-align: center; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #e0e0e0; border-radius: 10px; box-sizing: border-box; }
+        
+        .btn-search { width: 100%; padding: 15px; background: #0047AB; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        .btn-search:hover { background: #FFD700; color: #0047AB; }
+
+        #resultBox { margin-top: 20px; padding: 15px; border-radius: 10px; }
+        .success-box { background: #f0f7ff; border-left: 5px solid #0047AB; }
+        .error-box { color: red; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <a href="index.html">HOME</a>
+    <a href="https://forms.gle/jfZN16d1oZXTMvhv7">REGISTRATIONS</a>
+    <a href="index.html#campusSection">CAMPUSES</a>
+    <a href="download.html">DOWNLOADS</a>
+    <a href="results.html">RESULT</a>
+</div>
+
+<div class="result-card">
+    <h3>College Talent Test Session 2026 Result</h3>
+    <input type="text" id="rollInput" placeholder="Enter Roll Number" onkeypress="handleEnter(event)">
+    <input type="text" id="nameInput" placeholder="Enter Full Name" onkeypress="handleEnter(event)">
+    
+    <button class="btn-search" onclick="searchResult()">Search</button>
+    
+    <div id="resultBox"></div>
+</div>
+
+<script>
+function handleEnter(event) { if (event.key === "Enter") searchResult(); }
+
+async function searchResult() {
+    const roll = document.getElementById('rollInput').value.trim();
+    const name = document.getElementById('nameInput').value.trim().toLowerCase();
+    const resultBox = document.getElementById('resultBox');
+
+    resultBox.style.display = "block"; 
+    resultBox.innerHTML = "<p style='text-align:center;'>Searching record...</p>";
+
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQaPTM_LWxo_AknfcvZ6J-CKKUdLcu8LCNU6IJPlV4mmKpk6G3kZxzuArqsQQXYMUWYR1DpQY39mfaU/pub?output=csv';
+    
+    try {
+        const response = await fetch(csvUrl);
+        const data = await response.text();
+        const rows = data.split('\n');
+        
+        let found = false;
+        for (let i = 1; i < rows.length; i++) {
+            const cols = rows[i].split(',');
+            if (cols[1] && cols[1].trim() == roll && cols[3] && cols[3].trim().toLowerCase() == name) {
+                resultBox.className = "success-box";
+                resultBox.innerHTML = `
+                    <h3>Result Found</h3>
+                    <p><b>Student Name:</b> ${cols[3]}</p>
+                    <p><b>Father Name:</b> ${cols[4]}</p>
+                    <p><b>Campus:</b> ${cols[2]}</p>
+                    <p><b>Marks:</b> ${cols[8]}</p>
+                    <p><b>Group:</b> ${cols[10]}</p>`;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            resultBox.className = "error-box";
+            resultBox.innerHTML = "Record not found! Please check Roll No and Name.";
+        }
+    } catch (err) {
+        resultBox.className = "error-box";
+        resultBox.innerHTML = "Database Error! Check your internet connection.";
+    }
+}
+</script>
+
+</body>
+</html>

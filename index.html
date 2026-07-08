@@ -1,67 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jaseem - IT Expert</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Muhammad Jaseem — PC Software &amp; IT Support</title>
+<meta name="description" content="Muhammad Jaseem — IT solutions, PC software, system setup and technical support.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <div class="bismillah-header">
-        <img src="logo.png" class="header-logo" alt="Logo">
-        <div class="header-text">
-            <span class="main-title">Muhammad Jaseem</span>
-            <span class="sub-title">Computers & Repairing Center</span>
+<header>
+  <div class="nav">
+    <a href="#home" class="brand">
+      <img src="logo.png" alt="Logo monogram">
+      <span class="brand-text"><strong>Muhammad Jaseem</strong><span>PC Software &amp; IT Support</span></span>
+    </a>
+    <button class="menu-btn" id="menuBtn" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <ul id="navList">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#services">PC Software</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="#contact">Contact</a></li>
+      <li><a href="#contact" class="nav-cta">Get in Touch</a></li>
+    </ul>
+  </div>
+</header>
+
+<section class="hero" id="home">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow mono">IT Solutions &amp; PC Software</span>
+      <h1>Reliable systems.<br>Clean software.<br><em>Real support.</em></h1>
+      <p class="lead">I set up, fix, and maintain the computers and software your work depends on — from operating system installs to full custom systems built around what you actually need.</p>
+      <div class="hero-actions">
+        <a href="#services" class="btn btn-primary">View PC Software →</a>
+        <a href="#contact" class="btn btn-ghost">Contact Me</a>
+      </div>
+      <div class="hero-stats">
+        <div><strong>PC Software</strong><span>Install &amp; Setup</span></div>
+        <div><strong>Custom Systems</strong><span>Build &amp; Design</span></div>
+        <div><strong>Fast Support</strong><span>On Call</span></div>
+      </div>
+    </div>
+    <div class="terminal reveal">
+      <div class="terminal-bar"><span></span><span></span><span></span></div>
+      <div class="terminal-body">
+        <div><span class="muted">$</span> whoami</div>
+        <div>muhammad_jaseem</div>
+        <div style="margin-top:10px;"><span class="muted">$</span> role</div>
+        <div>IT &amp; Software Specialist</div>
+        <div style="margin-top:10px;"><span class="muted">$</span> status</div>
+        <div><span class="amber">●</span> available for new projects<span class="cursor"></span></div>
+      </div>
+    </div>
+  </div>
+  <svg class="trace trace-dark" viewBox="0 0 1180 34" preserveAspectRatio="none">
+    <path d="M0 17 H500 L520 5 H700 L720 17 H1180"/>
+    <circle cx="500" cy="17" r="3"/>
+    <circle cx="720" cy="17" r="3"/>
+  </svg>
+</section>
+
+<section class="about section-pad" id="about">
+  <div class="wrap">
+    <div class="head reveal">
+      <span class="mono">// About</span>
+      <h2>The person behind the systems</h2>
+    </div>
+    <div class="about-grid">
+      <div class="about-card reveal">
+        <div class="mono-badge"><img src="jaseem.jpg" alt="Muhammad Jaseem"></div>
+        <h3>Muhammad Jaseem</h3>
+        <div class="role">IT &amp; Software Specialist</div>
+        <div class="tags">
+          <span>Windows</span>
+          <span>PC Software</span>
+          <span>System Setup</span>
+          <span>Web Systems</span>
+          <span>Support</span>
         </div>
-    </div>
-
-    <div class="navbar">
-        <a href="index.html">HOME</a>
-        <a href="index.html">TUTORIAL</a>
-        <a href="#campusSection">PC SOFTWARE</a>
-        <a href="about.html">ABOUT</a>
-    </div>
-
-    <div id="mySlider" class="slider-container">
-        <div class="slides">
-            <img src="image1.JPG?v=1" class="active">
-            <img src="image2.jpg?v=1">
-            <img src="image3.jpg?v=1">
-            <img src="Image4.jpg?v=1">
-            <img src="image5.jpeg?v=1">
-            <img src="Image6.jpg?v=1">
+      </div>
+      <div class="about-text reveal">
+        <p>I'm Muhammad Jaseem — I work on the systems and software that keep computers, offices, and small businesses running smoothly.</p>
+        <p>My work covers the full range of practical IT: installing and configuring operating systems, setting up and licensing PC software, troubleshooting hardware and performance issues, and building the digital tools organizations actually use day to day — from data systems to custom web-based applications.</p>
+        <p>I care about doing things properly the first time. That means clean installs, software that's set up the way it's meant to be used, and support that doesn't disappear once the job is "done." Whether it's a single PC that needs fixing or a full system built from scratch, I treat every setup like it has to hold up under real, everyday use.</p>
+        <div class="about-list">
+          <div>Operating system installation &amp; configuration</div>
+          <div>PC software setup, licensing &amp; troubleshooting</div>
+          <div>Custom systems &amp; data tools</div>
+          <div>Ongoing technical support</div>
         </div>
+      </div>
     </div>
+  </div>
+  <svg class="trace trace-light" viewBox="0 0 1180 34" preserveAspectRatio="none">
+    <path d="M0 17 H300 L320 29 H600 L620 17 H1180"/>
+    <circle cx="300" cy="17" r="3"/>
+    <circle cx="620" cy="17" r="3"/>
+  </svg>
+</section>
 
-    <div id="campusSection" class="campus-location">
-        <h2>PC Software</h2>
-        <div class="grid-container">
-                <div class="card"><strong>Window 10 22h2</strong><br><br>
-<a href="https://drive.google.com/drive/folders/1JkP9fe73E_Zc10iOgS3A8oI75jlSh6I8?usp=sharing" target="_blank" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Now</a>
-            </div>
+<!--
+  PC SOFTWARE SECTION — edit each card below:
+  - Replace the <h3> text with the real software name
+  - Replace the <p> text with a short description
+  - Replace href="#" on the .download-btn with your real download link
+-->
+<section class="services section-pad" id="services">
+  <div class="wrap">
+    <div class="head reveal">
+      <span class="mono">// PC Software</span>
+      <h2>PC Software</h2>
+      <p>Trusted, ready-to-install PC software — download the tools you need directly from here.</p>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="service-grid reveal">
+      <div class="service-card">
+        <span class="service-num">01</span>
+        <h3>Window 10</h3>
+        <p>Version 22h2 Direct Download no ad.</p>
+        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQDU4n7dnGkITIDXcMk6vXhyARoQp022ZUneZMYTfKJcllU?e=8reIYm" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
+      </div>
+      <div class="service-card">
+        <span class="service-num">02</span>
+        <h3>Office 2016</h3>
+        <p>Office 2016 Direct Download no ad.</p>
+        <a href="https://drive.google.com/file/d/1j8tOpGEqeUTuxLc2lfMPCIos-4FmxjDa/view?usp=sharing" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
+      </div>
+      <div class="service-card">
+        <span class="service-num">03</span>
+        <h3>Rufus</h3>
+        <p>Rufus 3.13 Portable no installation require.</p>
+        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQAHdB32qW5qRr1YD2Vf3FPaAaGW2xcC9HteYPH8YbAiKmY?e=rEmhi9" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
+      </div>
+      <div class="service-card">
+        <span class="service-num">04</span>
+        <h3>Ventoy-1.1.05</h3>
+        <p>Keep multiple window in single flash drive.</p>
+        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQCy2WptJSY0Rba3Gno39gmAAUW-76iLEEBN4kv8CothCfU?e=LfqZdl" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
+      </div>
+      <div class="service-card">
+        <span class="service-num">05</span>
+        <h3>Winrar</h3>
+        <p>Winrar offline setup no ad.</p>
+        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQB6JpXOxfVLQ6-hr01cCbn-ARQ3BzLFMeyHfn2fI5MUNhM?e=jsxS61" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
+      </div>
+      <div class="service-card">
+        <span class="service-num">06</span>
+        <h3>KMS Portable</h3>
+        <p>Register your office and window with one click.</p>
+        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQAVwjMYImefS7YUSmcF1ZN9AeCHew1RHW29HN9ijG6NHKI?e=zez0hN" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="gallery section-pad" id="gallery">
+  <div class="wrap">
+    <div class="head reveal">
+      <span class="mono">// Gallery</span>
+      <h2>Recent work</h2>
+      <p>A look at recent setups, systems, and projects.</p>
+    </div>
+    <div class="slider reveal" id="slider">
+      <div class="slider-track" id="sliderTrack">
+        <div class="slide"><img src="image1.jpg" alt="Project image 1"><div class="slide-caption">01 / 06</div></div>
+        <div class="slide"><img src="image2.jpg" alt="Project image 2"><div class="slide-caption">02 / 06</div></div>
+        <div class="slide"><img src="image3.jpg" alt="Project image 3"><div class="slide-caption">03 / 06</div></div>
+        <div class="slide"><img src="image4.jpg" alt="Project image 4"><div class="slide-caption">04 / 06</div></div>
+        <div class="slide"><img src="image5.jpg" alt="Project image 5"><div class="slide-caption">05 / 06</div></div>
+        <div class="slide"><img src="image6.jpg" alt="Project image 6"><div class="slide-caption">06 / 06</div></div>
+      </div>
+      <button class="slider-arrow prev" id="prevBtn" aria-label="Previous slide">&#8592;</button>
+      <button class="slider-arrow next" id="nextBtn" aria-label="Next slide">&#8594;</button>
+    </div>
+    <div class="slider-dots" id="sliderDots"></div>
+  </div>
+</section>
 
+<footer id="contact">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <img src="logo.png" alt="Logo monogram">
+          <strong>Muhammad Jaseem</strong>
+        </div>
+        <p style="font-size:14px; color:#8FA1B7; max-width:320px;">IT solutions and PC software services by Muhammad Jaseem — practical support for computers, systems, and the software that runs on them.</p>
+      </div>
+      <div>
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#services">PC Software</a></li>
+          <li><a href="#gallery">Gallery</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:hello@example.com">hello@example.com</a></li>
+          <li><a href="tel:+920000000000">+92 300 0000000</a></li>
+          <li>Khyber Pakhtunkhwa, Pakistan</li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="year"></span> Muhammad Jaseem — Jaseem IT. All rights reserved.</span>
+      <span class="mono" style="color:#4A6180;">Built &amp; maintained by Muhammad Jaseem</span>
+    </div>
+  </div>
+</footer>
 
-            <div class="card"><strong>GTX 750TI Driver</strong><br><br>
-                <a href="https://onedrive.live.com/?viewid=c26a7338%2D9da9%2D4f2e%2Dbd79%2Da47e9f1ef837&id=%2Fpersonal%2F811d40717c4d380b%2FDocuments%2FGTX%20750TI%20Window%2010%2064bit%20Driver%2F431%2E36%2Ddesktop%2Dwin10%2D64bit%2Dinternational%2Dwhql%2Eexe&parent=%2Fpersonal%2F811d40717c4d380b%2FDocuments%2FGTX%20750TI%20Window%2010%2064bit%20Driver" target="_blank"style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Now</a>
-            </div>
-            <div class="card"><strong>KMS AUTO PICO</strong><br><br>
-                <a href="https://1drv.ms/u/c/811d40717c4d380b/IQAVwjMYImefS7YUSmcF1ZN9AeCHew1RHW29HN9ijG6NHKI?e=WErMqs" target="_blank"style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Now</a>
-            </div>
-            <div class="card"><strong>RUFUS</strong><br><br>
-                <a href="https://1drv.ms/u/c/811d40717c4d380b/IQAHdB32qW5qRr1YD2Vf3FPaAaGW2xcC9HteYPH8YbAiKmY?e=5CHray" target="_blank"style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Now</a>
-            </div>
-            <div class="card"><strong>Ventoy 1.1.05</strong><br><br>
-                <a href="https://1drv.ms/u/c/811d40717c4d380b/IQCy2WptJSY0Rba3Gno39gmAAUW-76iLEEBN4kv8CothCfU?e=IWQ02W" target="_blank"style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Now</a>
-            </div>
-            <div class="card"><strong>Winrar 64bit</strong><br><br>
-                <a href="https://1drv.ms/u/c/811d40717c4d380b/IQB6JpXOxfVLQ6-hr01cCbn-ARQ3BzLFMeyHfn2fI5MUNhM?e=lr2fOh" target="_blank"style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Now</a>
-            </div>
-            <div class="card"><strong>IDM Registery One Click</strong><br><br>
-                <a href="https://1drv.ms/u/c/811d40717c4d380b/IQD6ZGSe-YGWQqMGdq28Ex-DATrFE6_1EPOITBnZ2z8e8CE?e=SK7dGy" target="_blank"style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Now</a>
-            </div>
+<script>
+  // Mobile menu
+  const menuBtn = document.getElementById('menuBtn');
+  const navList = document.getElementById('navList');
+  menuBtn.addEventListener('click', () => {
+    const open = navList.classList.toggle('open');
+    menuBtn.setAttribute('aria-expanded', open);
+  });
+  navList.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    navList.classList.remove('open');
+  }));
 
+  // Reveal on scroll
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el => io.observe(el));
 
-    <script src="script.js"></script>
+  // Slider
+  const track = document.getElementById('sliderTrack');
+  const slides = track.querySelectorAll('.slide');
+  const dotsWrap = document.getElementById('sliderDots');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  let idx = 0;
+  let autoTimer;
+
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    if(i === 0) dot.classList.add('active');
+    dot.setAttribute('aria-label', 'Go to slide ' + (i+1));
+    dot.addEventListener('click', () => goTo(i));
+    dotsWrap.appendChild(dot);
+  });
+  const dots = dotsWrap.querySelectorAll('button');
+
+  function goTo(i){
+    idx = (i + slides.length) % slides.length;
+    track.style.transform = `translateX(-${idx * 100}%)`;
+    dots.forEach((d, di) => d.classList.toggle('active', di === idx));
+  }
+  function next(){ goTo(idx + 1); }
+  function prev(){ goTo(idx - 1); }
+
+  nextBtn.addEventListener('click', () => { next(); resetAuto(); });
+  prevBtn.addEventListener('click', () => { prev(); resetAuto(); });
+
+  function startAuto(){ autoTimer = setInterval(next, 5000); }
+  function resetAuto(){ clearInterval(autoTimer); startAuto(); }
+  startAuto();
+
+  const sliderEl = document.getElementById('slider');
+  sliderEl.addEventListener('mouseenter', () => clearInterval(autoTimer));
+  sliderEl.addEventListener('mouseleave', startAuto);
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
 </body>
 </html>

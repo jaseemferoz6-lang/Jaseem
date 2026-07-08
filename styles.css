@@ -86,8 +86,8 @@
     text-decoration:none;
   }
   .brand img{
-    height:240px;
-    width:240px;
+    height:200px;
+    width:200px;
     object-fit:contain;
   }
   .brand-text{

@@ -37,6 +37,11 @@
     <div>
       <span class="eyebrow mono">IT Solutions &amp; PC Software</span>
       <h1>Reliable systems.<br>Clean software.<br><em>Real support.</em></h1>
+      <a href="schoolportal.html" class="school-portal-btn">
+        <span class="dot-live"></span>
+        Want portal for your school? <strong>click here</strong>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg>
+      </a>
       <p class="lead">I set up, fix, and maintain the computers and software your work depends on — from operating system installs to full custom systems built around what you actually need.</p>
       <div class="hero-actions">
         <a href="#services" class="btn btn-primary">View PC Software →</a>
@@ -218,6 +223,40 @@
     </div>
   </div>
 </footer>
+
+<style>
+  .school-portal-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    margin-top:22px;
+    padding:10px 18px;
+    border-radius:999px;
+    background:rgba(198,121,62,.10);
+    border:1px solid #C6793E;
+    color:#E0A468;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13.5px;
+    font-weight:500;
+    transition:background .15s ease, transform .15s ease;
+  }
+  .school-portal-btn strong{color:#E0A468;font-weight:700;}
+  .school-portal-btn:hover{background:rgba(198,121,62,.2);transform:translateY(-1px);}
+  .school-portal-btn .dot-live{
+    width:7px;height:7px;border-radius:50%;
+    background:#E2B04C;
+    box-shadow:0 0 0 0 rgba(226,176,76,.6);
+    animation:pulse-dot 1.8s infinite;
+  }
+  @keyframes pulse-dot{
+    0%{box-shadow:0 0 0 0 rgba(226,176,76,.5);}
+    70%{box-shadow:0 0 0 8px rgba(226,176,76,0);}
+    100%{box-shadow:0 0 0 0 rgba(226,176,76,0);}
+  }
+  @media (max-width:520px){
+    .school-portal-btn{font-size:12.5px;padding:9px 14px;}
+  }
+</style>
 
 <script>
   // Mobile menu

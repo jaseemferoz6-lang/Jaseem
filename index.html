@@ -1,423 +1,907 @@
-<!DOCTYPE html>
-<html lang="en">
+    <!DOCTYPE html>
+<html lang="ur">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Muhammad Jaseem — PC Software &amp; IT Support</title>
-<meta name="description" content="Muhammad Jaseem — IT solutions, PC software, system setup and technical support.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<title>Live Code Preview by jaseem.store</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --app-bg: #f4f4f8;
+    --panel-bg: #ffffff;
+    --border-color: #dcdce6;
+    --text-main: #1e1e2e;
+    --text-dim: #55586b;
+    --accent: #7c3aed;
+    --btn-bg: #e6e6f0;
+    --btn-hover: #d5d5e6;
+    --editor-bg: #ffffff;
+    --editor-text: #1e1e2e;
+    --preview-bg: #ffffff;
+    --preview-text: #1e1e2e;
+  }
+  body.dark-mode {
+    --app-bg: #1e1e2e;
+    --panel-bg: #181825;
+    --border-color: #313244;
+    --text-main: #e0e0e0;
+    --text-dim: #a6adc8;
+    --accent: #cba6f7;
+    --btn-bg: #313244;
+    --btn-hover: #45475a;
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: var(--app-bg);
+    color: var(--text-main);
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  header {
+    padding: 10px 16px;
+    background: var(--panel-bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    color: var(--accent);
+  }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .btns button, .btns select {
+    background: var(--btn-bg);
+    color: var(--text-main);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .btns button:hover { background: var(--btn-hover); }
+  .btns button.active { background: var(--accent); color: var(--app-bg); font-weight: bold; }
+  .sep { width: 1px; height: 20px; background: var(--border-color); margin: 0 4px; }
+
+  /* Sliding toggle switch for Dark Mode — ON/OFF text lives inside the track itself */
+  .switch-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .switch {
+    position: relative;
+    width: 56px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch-track {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(#c7c7d1, #b0b0bd); /* silver = OFF */
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  .switch-track::before {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    top: 3px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.3s ease;
+    z-index: 2;
+  }
+  .switch-off-text, .switch-on-text {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .switch-off-text { right: 6px; color: #55586b; opacity: 1; }
+  .switch-on-text { left: 6px; color: #ffffff; opacity: 0; }
+  .switch input:checked + .switch-track {
+    background: linear-gradient(#a78bfa, #7c3aed); /* colorful = ON */
+  }
+  .switch input:checked + .switch-track::before {
+    transform: translateX(32px);
+  }
+  .switch input:checked ~ .switch-on-text { opacity: 1; }
+  .switch input:checked ~ .switch-off-text { opacity: 0; }
+
+  .color-picker-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--btn-bg);
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .color-picker-wrap label {
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .color-picker-wrap input[type="color"] {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 4px;
+    padding: 0;
+    cursor: pointer;
+    background: none;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    position: relative;
+  }
+  main.dir-right { flex-direction: row; }
+  main.dir-left { flex-direction: row-reverse; }
+  main.dir-bottom { flex-direction: column; }
+  main.dir-top { flex-direction: column-reverse; }
+
+  .editor-pane, .preview-pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .editor-pane { flex: 1; }
+  .preview-pane {
+    flex: 0 0 45%;
+    position: relative;
+  }
+
+  .divider {
+    background: var(--border-color);
+    flex-shrink: 0;
+    z-index: 5;
+    position: relative;
+  }
+  main.dir-right .divider, main.dir-left .divider {
+    width: 16px; cursor: col-resize;
+    border-left: 1px solid var(--app-bg);
+    border-right: 1px solid var(--app-bg);
+  }
+  main.dir-bottom .divider, main.dir-top .divider {
+    height: 16px; cursor: row-resize;
+    border-top: 1px solid var(--app-bg);
+    border-bottom: 1px solid var(--app-bg);
+  }
+  .divider:hover, .divider.dragging { background: #111111; }
+
+  /* Scrolling marquee text inside the separator — shows www.jaseem.store on a seamless loop
+     (content is duplicated so at least two copies are always visible while scrolling) */
+  .divider-marquee {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .marquee-track {
+    display: flex;
+  }
+  .marquee-track span {
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+  }
+  main.dir-right .marquee-track, main.dir-left .marquee-track {
+    flex-direction: column;
+    align-items: center;
+    animation: marqueeVertical 9s linear infinite;
+  }
+  main.dir-right .marquee-track span, main.dir-left .marquee-track span {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    padding: 14px 0;
+  }
+  main.dir-top .marquee-track, main.dir-bottom .marquee-track {
+    flex-direction: row;
+    animation: marqueeHorizontal 14s linear infinite;
+  }
+  main.dir-top .marquee-track span, main.dir-bottom .marquee-track span {
+    padding: 0 16px;
+  }
+  @keyframes marqueeVertical {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-50%); }
+  }
+  @keyframes marqueeHorizontal {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .divider:hover .marquee-track span,
+  .divider.dragging .marquee-track span { color: #ffffff; }
+
+  .tabs {
+    display: flex;
+    background: var(--panel-bg);
+    flex-shrink: 0;
+    gap: 2px;
+    padding: 4px 4px 0 4px;
+  }
+  .tabs button {
+    flex: 1;
+    padding: 8px;
+    color: var(--text-dim);
+    border: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+  }
+  .tabs button:hover { opacity: 0.85; }
+  .tabs button[data-tab="html"] { background: rgba(230, 126, 34, 0.18); color: #e67e22; }
+  .tabs button[data-tab="css"]  { background: rgba(52, 152, 219, 0.18); color: #3498db; }
+  .tabs button[data-tab="js"]   { background: rgba(241, 196, 15, 0.20); color: #d4ac0d; }
+  .tabs button.active {
+    opacity: 1;
+    background: var(--app-bg);
+    box-shadow: inset 0 -2px 0 currentColor;
+  }
+  #searchToggleBtn {
+    flex: 0.1 5 auto;
+    background: silver;
+    color: var(--text-dim);
+    opacity: 1;
+    font-size: 16.8px; /* 14px + 20% */
+    padding: 9.6px 12px; /* 8px/10px + 20% */
+  }
+  #searchToggleBtn:hover { color: var(--accent); }
+  #searchToggleBtn.active { color: var(--accent); }
+
+  .search-bar {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+  }
+  .search-bar.active { display: flex; }
+  .search-bar input {
+    flex: 1;
+    min-width: 0;
+    background: var(--app-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 13px;
+    outline: none;
+  }
+  .search-bar input:focus { border-color: var(--accent); }
+  .search-bar button {
+    background: var(--btn-bg);
+    color: var(--text-main);
+    border: none;
+    border-radius: 30px;
+    padding: 5px 9px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .search-bar button:hover { background: var(--btn-hover); }
+  .match-count {
+    font-size: 20px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    min-width: 62px;
+  }
+  .editor-wrap {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+    display: none;
+    background: var(--editor-bg);
+  }
+  .editor-wrap.active { display: block; }
+
+  /* Sits behind the textarea, mirrors its text, and paints highlight backgrounds
+     for search matches. Font metrics must match the textarea exactly so the
+     highlights line up with the real text on top. */
+  .highlight-layer {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 12px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: transparent;
+    overflow: hidden;
+    pointer-events: none;
+    tab-size: 2;
+  }
+  .highlight-layer mark {
+    background: rgba(124, 58, 237, 0.35);
+    color: transparent;
+    border-radius: 2px;
+  }
+  .highlight-layer mark.current {
+    background: rgba(124, 58, 237, 0.8);
+  }
+
+  textarea {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    color: var(--editor-text);
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 12px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    tab-size: 2;
+  }
+  .preview-pane iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: var(--preview-bg);
+  }
+  .iframe-overlay {
+    position: absolute;
+    inset: 0;
+    top: 33px; /* below preview-header */
+    display: none;
+    z-index: 10;
+    cursor: inherit;
+  }
+  .iframe-overlay.active { display: block; }
+  .preview-header {
+    padding: 8px 12px;
+    background: linear-gradient(to bottom, #e4e4ec, #c7c7d2);
+    font-size: 13px;
+    font-weight: 600;
+    color: #3a3a45;
+    flex-shrink: 0;
+    user-select: none;
+    border-bottom: 1px solid #b3b3c0;
+  }
+  footer {
+    text-align: center;
+    padding: 4px;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--panel-bg);
+    flex-shrink: 0;
+  }
+</style>
 </head>
 <body>
 
 <header>
-  <div class="nav" id="navRow">
-    <a href="#home" class="brand" id="navBrand">
-      <img src="logo.png" alt="Logo monogram">
-      <span class="brand-text" id="brandText"><strong>Muhammad Jaseem</strong><span>PC Software &amp; IT Support</span></span>
-    </a>
-    <div class="nav-header-actions" id="navHeaderActions">
-      <a href="schoolportal.html" class="school-portal-btn header-btn">
-        <span class="dot-live"></span>
-        Want portal for your school? <strong>click here</strong>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg>
-      </a>
-      <a href="live-preview.html" class="code-practice-btn header-btn" target="_blank" rel="noopener">
-        <span class="dot-live2"></span>
-        Practice on your own code???
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg>
-      </a>
+  <h1>⚡ Live Code Preview</h1>
+  <div class="btns">
+    <button id="runBtn">▶ Run</button>
+    <button id="autoBtn" class="active">Auto Preview: ON</button>
+    <div class="switch-wrap">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input type="checkbox" id="darkModeCheckbox">
+        <span class="switch-track"></span>
+        <span class="switch-on-text">ON</span>
+        <span class="switch-off-text">OFF</span>
+      </label>
     </div>
-    <button class="menu-btn" id="menuBtn" aria-label="Toggle menu" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
-    <ul id="navList">
-      <li><a href="#home">Home</a></li>
-      <li><a href="#about">About</a></li>
-      <li><a href="#services">PC Software</a></li>
-      <li><a href="#gallery">Gallery</a></li>
-      <li><a href="#contact">Contact</a></li>
-      <li><a href="#contact" class="nav-cta">Get in Touch</a></li>
-    </ul>
+    <div class="sep"></div>
+    <div class="color-picker-wrap">
+      <label for="editorColor">Editor BG</label>
+      <input type="color" id="editorColor" value="#ffffff">
+    </div>
+    <div class="color-picker-wrap">
+      <label for="editorTextColor">Editor Text</label>
+      <input type="color" id="editorTextColor" value="#1e1e2e">
+    </div>
+    <div class="color-picker-wrap">
+      <label for="previewColor">Preview BG</label>
+      <input type="color" id="previewColor" value="#ffffff">
+    </div>
+    <div class="color-picker-wrap">
+      <label for="previewTextColor">Preview Text</label>
+      <input type="color" id="previewTextColor" value="#1e1e2e">
+    </div>
+    <div class="sep"></div>
+    <span style="font-size:12px;color:var(--text-dim);">Preview:</span>
+    <button data-pos="right" class="posBtn active">Right ➡</button>
+    <button data-pos="left" class="posBtn">⬅ Left</button>
+    <button data-pos="top" class="posBtn">⬆ Top</button>
+    <button data-pos="bottom" class="posBtn">Bottom ⬇</button>
   </div>
 </header>
 
-<section class="hero" id="home">
-  <div class="wrap hero-grid">
-    <div>
-      <span class="eyebrow mono">IT Solutions &amp; PC Software</span>
-      <h1>Reliable systems.<br>Clean software.<br><em>Real support.</em></h1>
-      <p class="lead">I set up, fix, and maintain the computers and software your work depends on — from operating system installs to full custom systems built around what you actually need.</p>
-      <div class="hero-actions">
-        <a href="#services" class="btn btn-primary">View PC Software →</a>
-        <a href="#contact" class="btn btn-ghost">Contact Me</a>
-      </div>
-      <div class="hero-stats">
-        <div><strong>PC Software</strong><span>Install &amp; Setup</span></div>
-        <div><strong>Custom Systems</strong><span>Build &amp; Design</span></div>
-        <div><strong>Fast Support</strong><span>On Call</span></div>
-      </div>
+<main class="dir-right" id="mainArea">
+  <div class="editor-pane" id="editorPane">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="html">HTML</button>
+      <button class="tab-btn" data-tab="css">CSS</button>
+      <button class="tab-btn" data-tab="js">JS</button>
+      <button id="searchToggleBtn" title="Search in editor (Ctrl+F)">🔍</button>
     </div>
-    <div class="terminal reveal">
-      <div class="terminal-bar"><span></span><span></span><span></span></div>
-      <div class="terminal-body">
-        <div><span class="muted">$</span> whoami</div>
-        <div>muhammad_jaseem</div>
-        <div style="margin-top:10px;"><span class="muted">$</span> role</div>
-        <div>IT &amp; Software Specialist</div>
-        <div style="margin-top:10px;"><span class="muted">$</span> status</div>
-        <div><span class="amber">●</span> available for new projects<span class="cursor"></span></div>
+    <div class="search-bar" id="searchBar">
+      <input type="text" id="searchInput" placeholder="Search in this tab...">
+      <span id="matchCount" class="match-count"></span>
+      <button id="searchPrevBtn" title="Previous match">▲</button>
+      <button id="searchNextBtn" title="Next match">▼</button>
+      <button id="searchCloseBtn" title="Close">✕</button>
+    </div>
+    <div class="editor-wrap active" id="htmlWrap">
+      <pre class="highlight-layer" id="htmlHL" aria-hidden="true"></pre>
+      <textarea id="html" spellcheck="false">&lt;h1&gt;Hello Jaseem 👋&lt;/h1&gt;
+&lt;p&gt;Write your HTML CSS & Java codes here&lt;/p&gt;
+&lt;button id="btn"&gt;Click me&lt;/button&gt;</textarea>
+    </div>
+    <div class="editor-wrap" id="cssWrap">
+      <pre class="highlight-layer" id="cssHL" aria-hidden="true"></pre>
+      <textarea id="css" spellcheck="false">body {
+  font-family: sans-serif;
+  text-align: center;
+  padding: 40px;
+  color: #333;
+}
+button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #6c5ce7;
+  color: white;
+  cursor: pointer;
+}</textarea>
+    </div>
+    <div class="editor-wrap" id="jsWrap">
+      <pre class="highlight-layer" id="jsHL" aria-hidden="true"></pre>
+      <textarea id="js" spellcheck="false">document.getElementById('btn').addEventListener('click', () => {
+  alert('Button pressed!');
+});</textarea>
+    </div>
+  </div>
+
+  <div class="divider" id="divider">
+    <div class="divider-marquee">
+      <div class="marquee-track">
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
       </div>
     </div>
   </div>
-  <svg class="trace trace-dark" viewBox="0 0 1180 34" preserveAspectRatio="none">
-    <path d="M0 17 H500 L520 5 H700 L720 17 H1180"/>
-    <circle cx="500" cy="17" r="3"/>
-    <circle cx="720" cy="17" r="3"/>
-  </svg>
-</section>
 
-<section class="about section-pad" id="about">
-  <div class="wrap">
-    <div class="head reveal">
-      <span class="mono">// About</span>
-      <h2>The person behind the systems</h2>
-    </div>
-    <div class="about-grid">
-      <div class="about-card reveal">
-        <div class="mono-badge"><img src="jaseem.jpg" alt="Muhammad Jaseem"></div>
-        <h3>Muhammad Jaseem</h3>
-        <div class="role">IT &amp; Software Specialist</div>
-        <div class="tags">
-          <span>Windows</span>
-          <span>PC Software</span>
-          <span>System Setup</span>
-          <span>Web Systems</span>
-          <span>Support</span>
-        </div>
-      </div>
-      <div class="about-text reveal">
-        <p>I'm Muhammad Jaseem — I work on the systems and software that keep computers, offices, and small businesses running smoothly.</p>
-        <p>My work covers the full range of practical IT: installing and configuring operating systems, setting up and licensing PC software, troubleshooting hardware and performance issues, and building the digital tools organizations actually use day to day — from data systems to custom web-based applications.</p>
-        <p>I care about doing things properly the first time. That means clean installs, software that's set up the way it's meant to be used, and support that doesn't disappear once the job is "done." Whether it's a single PC that needs fixing or a full system built from scratch, I treat every setup like it has to hold up under real, everyday use.</p>
-        <div class="about-list">
-          <div>Operating system installation &amp; configuration</div>
-          <div>PC software setup, licensing &amp; troubleshooting</div>
-          <div>Custom systems &amp; data tools</div>
-          <div>Ongoing technical support</div>
-        </div>
-      </div>
-    </div>
+  <div class="preview-pane" id="previewPane">
+    <div class="preview-header">🔎 Live Preview (drag the divider to resize)&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;<span id="directionHint">Write your code in the left window to preview</span></div>
+    <iframe id="preview" title="preview"></iframe>
+    <div class="iframe-overlay" id="iframeOverlay"></div>
   </div>
-  <svg class="trace trace-light" viewBox="0 0 1180 34" preserveAspectRatio="none">
-    <path d="M0 17 H300 L320 29 H600 L620 17 H1180"/>
-    <circle cx="300" cy="17" r="3"/>
-    <circle cx="620" cy="17" r="3"/>
-  </svg>
-</section>
+</main>
 
-<!--
-  PC SOFTWARE SECTION — edit each card below:
-  - Replace the <h3> text with the real software name
-  - Replace the <p> text with a short description
-  - Replace href="#" on the .download-btn with your real download link
--->
-<section class="services section-pad" id="services">
-  <div class="wrap">
-    <div class="head reveal">
-      <span class="mono">// PC Software</span>
-      <h2>PC Software</h2>
-      <p>Trusted, ready-to-install PC software — download the tools you need directly from here.</p>
-    </div>
-  </div>
-  <div class="wrap">
-    <div class="service-grid reveal">
-      <div class="service-card">
-        <span class="service-num">01</span>
-        <h3>Window 10</h3>
-        <p>Version 22h2 Direct Download no ad.</p>
-        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQDU4n7dnGkITIDXcMk6vXhyARoQp022ZUneZMYTfKJcllU?e=8reIYm" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
-      </div>
-      <div class="service-card">
-        <span class="service-num">02</span>
-        <h3>Office 2016</h3>
-        <p>Office 2016 Direct Download no ad.</p>
-        <a href="https://drive.google.com/file/d/1j8tOpGEqeUTuxLc2lfMPCIos-4FmxjDa/view?usp=sharing" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
-      </div>
-      <div class="service-card">
-        <span class="service-num">03</span>
-        <h3>Rufus</h3>
-        <p>Rufus 3.13 Portable no installation require.</p>
-        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQAHdB32qW5qRr1YD2Vf3FPaAaGW2xcC9HteYPH8YbAiKmY?e=rEmhi9" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
-      </div>
-      <div class="service-card">
-        <span class="service-num">04</span>
-        <h3>Ventoy-1.1.05</h3>
-        <p>Keep multiple window in single flash drive.</p>
-        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQCy2WptJSY0Rba3Gno39gmAAUW-76iLEEBN4kv8CothCfU?e=LfqZdl" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
-      </div>
-      <div class="service-card">
-        <span class="service-num">05</span>
-        <h3>Winrar</h3>
-        <p>Winrar offline setup no ad.</p>
-        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQB6JpXOxfVLQ6-hr01cCbn-ARQ3BzLFMeyHfn2fI5MUNhM?e=jsxS61" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
-      </div>
-      <div class="service-card">
-        <span class="service-num">06</span>
-        <h3>KMS Portable</h3>
-        <p>Register your office and window with one click.</p>
-        <a href="https://1drv.ms/u/c/811d40717c4d380b/IQAVwjMYImefS7YUSmcF1ZN9AeCHew1RHW29HN9ijG6NHKI?e=zez0hN" class="download-btn">Download <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg></a>
-      </div>
-    </div>
-  </div>
-</section>
-<section class="gallery section-pad" id="gallery">
-  <div class="wrap">
-    <div class="head reveal">
-      <span class="mono">// Gallery</span>
-      <h2>Recent work</h2>
-      <p>A look at recent setups, systems, and projects.</p>
-    </div>
-    <div class="slider reveal" id="slider">
-      <div class="slider-track" id="sliderTrack">
-        <div class="slide"><img src="image1.jpg" alt="Project image 1"><div class="slide-caption">01 / 06</div></div>
-        <div class="slide"><img src="image2.jpg" alt="Project image 2"><div class="slide-caption">02 / 06</div></div>
-        <div class="slide"><img src="image3.jpg" alt="Project image 3"><div class="slide-caption">03 / 06</div></div>
-        <div class="slide"><img src="image4.jpg" alt="Project image 4"><div class="slide-caption">04 / 06</div></div>
-        <div class="slide"><img src="image5.jpg" alt="Project image 5"><div class="slide-caption">05 / 06</div></div>
-        <div class="slide"><img src="image6.jpg" alt="Project image 6"><div class="slide-caption">06 / 06</div></div>
-      </div>
-      <button class="slider-arrow prev" id="prevBtn" aria-label="Previous slide">&#8592;</button>
-      <button class="slider-arrow next" id="nextBtn" aria-label="Next slide">&#8594;</button>
-    </div>
-    <div class="slider-dots" id="sliderDots"></div>
-  </div>
-</section>
-
-<footer id="contact">
-  <div class="wrap">
-    <div class="footer-grid">
-      <div>
-        <div class="footer-brand">
-          <img src="logo.png" alt="Logo monogram">
-          <strong>Muhammad Jaseem</strong>
-        </div>
-        <p style="font-size:14px; color:#8FA1B7; max-width:320px;">IT solutions and PC software services by Muhammad Jaseem — practical support for computers, systems, and the software that runs on them.</p>
-      </div>
-      <div>
-        <h4>Navigate</h4>
-        <ul>
-          <li><a href="#home">Home</a></li>
-          <li><a href="#about">About</a></li>
-          <li><a href="#services">PC Software</a></li>
-          <li><a href="#gallery">Gallery</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Contact</h4>
-        <ul>
-          <li><a href="mailto:muhammadjaseem102@gmail.com">muhammadjaseem102@gmail.com</a></li>
-          <li><a href="tel:+923145561622">+92 314 5561622</a></li>
-          <li>Khyber Pakhtunkhwa, Pakistan</li>
-        </ul>
-      </div>
-    </div>
-    <div class="foot-bottom">
-      <span>© <span id="year"></span> Muhammad Jaseem — Jaseem IT. All rights reserved.</span>
-      <span class="mono" style="color:#4A6180;">Built &amp; maintained by Muhammad Jaseem</span>
-    </div>
-  </div>
-</footer>
-
-<style>
-  .school-portal-btn{
-    display:inline-flex;
-    align-items:center;
-    gap:9px;
-    margin-top:22px;
-    padding:10px 18px;
-    border-radius:999px;
-    background:rgba(198,121,62,.10);
-    border:1px solid #C6793E;
-    color:#E0A468;
-    font-family:'JetBrains Mono',monospace;
-    font-size:13.5px;
-    font-weight:500;
-    transition:background .15s ease, transform .15s ease;
-  }
-  .school-portal-btn strong{color:#E0A468;font-weight:700;}
-  .school-portal-btn:hover{background:rgba(198,121,62,.2);transform:translateY(-1px);}
-  .school-portal-btn .dot-live{
-    width:7px;height:7px;border-radius:50%;
-    background:#E2B04C;
-    box-shadow:0 0 0 0 rgba(226,176,76,.6);
-    animation:pulse-dot 1.8s infinite;
-  }
-  @keyframes pulse-dot{
-    0%{box-shadow:0 0 0 0 rgba(226,176,76,.5);}
-    70%{box-shadow:0 0 0 8px rgba(226,176,76,0);}
-    100%{box-shadow:0 0 0 0 rgba(226,176,76,0);}
-  }
-  @media (max-width:520px){
-    .school-portal-btn{font-size:12.5px;padding:9px 14px;}
-  }
-
-  .code-practice-btn{
-    display:inline-flex;
-    align-items:center;
-    gap:9px;
-    margin-top:18px;
-    padding:10px 18px;
-    border-radius:999px;
-    background:rgba(124,58,237,.10);
-    border:1px solid #7C3AED;
-    color:#B69CF8;
-    font-family:'JetBrains Mono',monospace;
-    font-size:13.5px;
-    font-weight:500;
-    transition:background .15s ease, transform .15s ease;
-  }
-  .code-practice-btn:hover{background:rgba(124,58,237,.22);transform:translateY(-1px);}
-  .code-practice-btn .dot-live2{
-    width:7px;height:7px;border-radius:50%;
-    background:#A78BFA;
-    box-shadow:0 0 0 0 rgba(167,139,250,.6);
-    animation:pulse-dot2 1.8s infinite;
-  }
-  @keyframes pulse-dot2{
-    0%{box-shadow:0 0 0 0 rgba(167,139,250,.5);}
-    70%{box-shadow:0 0 0 8px rgba(167,139,250,0);}
-    100%{box-shadow:0 0 0 0 rgba(167,139,250,0);}
-  }
-  @media (max-width:520px){
-    .code-practice-btn{font-size:12.5px;padding:9px 14px;}
-  }
-
-  /* Position of the action buttons is calculated in JS (see script below)
-     so it always lines up with the title's real left edge and sits just
-     below it, regardless of the logo/title sizing in the main stylesheet. */
-  .nav{ position:relative; }
-  .nav-header-actions{
-    position:absolute;
-    display:flex;
-    align-items:center;
-    gap:14px;
-    flex-wrap:wrap;
-    max-width:70%;
-  }
-  .header-btn{
-    margin-top:0 !important;
-    padding:7px 14px !important;
-    font-size:12px !important;
-    white-space:nowrap;
-  }
-  @media (max-width: 980px){
-    .nav-header-actions{ display:none; } /* hidden on mobile nav; menu-btn/navList takes over */
-  }
-
-  /* Make the title a bit larger (reaching closer to the logo's top edge)
-     and make the school-portal button's text/border more visible. */
-  .brand-text strong{ position: relative; top: 20px; font-size:30px !important; line-height:3 !important; }
-  .brand-text > span{ font-size:14px !important; }
-  .school-portal-btn.header-btn{
-    font-size:14px !important;
-    border-width:2px !important;
-    padding:8px 16px !important;
-  }
-  /* Top-align the title with the logo instead of vertically centering it */
-  .brand{ align-items:flex-start !important; }
-</style>
+<footer>Auto-refreshes on every change (when Auto Preview: ON) • Use position buttons to move the preview • Drag the divider to resize</footer>
 
 <script>
-  // Position the header action buttons so their left edge matches the
-  // title text's real left edge, and they sit just below the title —
-  // measured from actual rendered positions so it works no matter what
-  // the logo/title sizing turns out to be in the main stylesheet.
-  function positionHeaderActions() {
-    const nav = document.getElementById('navRow');
-    const brandText = document.getElementById('brandText');
-    const actions = document.getElementById('navHeaderActions');
-    if (!nav || !brandText || !actions) return;
-    if (getComputedStyle(actions).position !== 'absolute') return; // mobile: static, skip
+  const htmlEl = document.getElementById('html');
+  const cssEl = document.getElementById('css');
+  const jsEl = document.getElementById('js');
+  const iframe = document.getElementById('preview');
+  const tabs = document.querySelectorAll('.tab-btn');
+  const textareas = document.querySelectorAll('textarea');
+  const editorWraps = document.querySelectorAll('.editor-wrap');
+  const autoBtn = document.getElementById('autoBtn');
+  const runBtn = document.getElementById('runBtn');
+  const mainArea = document.getElementById('mainArea');
+  const divider = document.getElementById('divider');
+  const previewPane = document.getElementById('previewPane');
+  const posBtns = document.querySelectorAll('.posBtn');
+  const iframeOverlay = document.getElementById('iframeOverlay');
+  const darkModeCheckbox = document.getElementById('darkModeCheckbox');
+  const editorColor = document.getElementById('editorColor');
+  const editorTextColor = document.getElementById('editorTextColor');
+  const previewColor = document.getElementById('previewColor');
+  const previewTextColor = document.getElementById('previewTextColor');
+  const searchToggleBtn = document.getElementById('searchToggleBtn');
+  const searchBar = document.getElementById('searchBar');
+  const searchInput = document.getElementById('searchInput');
+  const searchPrevBtn = document.getElementById('searchPrevBtn');
+  const searchNextBtn = document.getElementById('searchNextBtn');
+  const searchCloseBtn = document.getElementById('searchCloseBtn');
+  const matchCount = document.getElementById('matchCount');
 
-    const navRect = nav.getBoundingClientRect();
-    const textRect = brandText.getBoundingClientRect();
+  let autoRun = true;
 
-    const left = textRect.left - navRect.left;
-    const top = (textRect.bottom - navRect.top) + 10; // small gap below the title
-
-    actions.style.left = left + 'px';
-    actions.style.top = top + 'px';
-  }
-
-  window.addEventListener('load', positionHeaderActions);
-  window.addEventListener('resize', positionHeaderActions);
-  // Fonts loading late can change text width/height — reposition once they're ready
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(positionHeaderActions);
-  }
-  positionHeaderActions(); // run immediately too, to avoid a flash at the wrong spot
-</script>
-
-<script>
-  // Mobile menu
-  const menuBtn = document.getElementById('menuBtn');
-  const navList = document.getElementById('navList');
-  menuBtn.addEventListener('click', () => {
-    const open = navList.classList.toggle('open');
-    menuBtn.setAttribute('aria-expanded', open);
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      editorWraps.forEach(w => w.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab + 'Wrap').classList.add('active');
+      if (searchBar.classList.contains('active')) renderHighlights(false);
+    });
   });
-  navList.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-    navList.classList.remove('open');
+
+  function runCode() {
+    const previewBg = previewColor.value;
+    const previewText = previewTextColor.value;
+    const doc = `
+      <!DOCTYPE html>
+      <html style="background:${previewBg};">
+      <head><style>${cssEl.value}</style></head>
+      <body style="background:${previewBg} !important; color:${previewText} !important;">${htmlEl.value}
+        <script>${jsEl.value}<\/script>
+      </body>
+      </html>
+    `;
+    iframe.srcdoc = doc;
+  }
+
+  let timeout;
+  function debounceRun() {
+    if (!autoRun) return;
+    clearTimeout(timeout);
+    timeout = setTimeout(runCode, 400);
+  }
+
+  [htmlEl, cssEl, jsEl].forEach(el => el.addEventListener('input', () => {
+    debounceRun();
+    if (searchBar.classList.contains('active')) renderHighlights(false);
   }));
+  textareas.forEach(t => t.addEventListener('scroll', syncScroll));
+  runBtn.addEventListener('click', runCode);
 
-  // Reveal on scroll
-  const revealEls = document.querySelectorAll('.reveal');
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, { threshold: 0.15 });
-  revealEls.forEach(el => io.observe(el));
-
-  // Slider
-  const track = document.getElementById('sliderTrack');
-  const slides = track.querySelectorAll('.slide');
-  const dotsWrap = document.getElementById('sliderDots');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  let idx = 0;
-  let autoTimer;
-
-  slides.forEach((_, i) => {
-    const dot = document.createElement('button');
-    if(i === 0) dot.classList.add('active');
-    dot.setAttribute('aria-label', 'Go to slide ' + (i+1));
-    dot.addEventListener('click', () => goTo(i));
-    dotsWrap.appendChild(dot);
+  autoBtn.addEventListener('click', () => {
+    autoRun = !autoRun;
+    autoBtn.textContent = 'Auto Preview: ' + (autoRun ? 'ON' : 'OFF');
+    autoBtn.classList.toggle('active', autoRun);
   });
-  const dots = dotsWrap.querySelectorAll('button');
 
-  function goTo(i){
-    idx = (i + slides.length) % slides.length;
-    track.style.transform = `translateX(-${idx * 100}%)`;
-    dots.forEach((d, di) => d.classList.toggle('active', di === idx));
+  // Tab key support
+  textareas.forEach(t => {
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = t.selectionStart, end = t.selectionEnd;
+        t.value = t.value.substring(0, start) + '  ' + t.value.substring(end);
+        t.selectionStart = t.selectionEnd = start + 2;
+      }
+    });
+  });
+
+  // ---- Position switching ----
+  const directionHint = document.getElementById('directionHint');
+  // When the preview sits on a given side, the editor is on the opposite side —
+  // this map gives the word describing where the editor actually is.
+  const editorSideFor = { right: 'left', left: 'right', bottom: 'above', top: 'below of the preview' };
+
+  function updateDirectionHint(pos) {
+    directionHint.textContent = `Write your code in the ${editorSideFor[pos]} window to preview`;
   }
-  function next(){ goTo(idx + 1); }
-  function prev(){ goTo(idx - 1); }
 
-  nextBtn.addEventListener('click', () => { next(); resetAuto(); });
-  prevBtn.addEventListener('click', () => { prev(); resetAuto(); });
+  posBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      posBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const pos = btn.dataset.pos;
+      mainArea.className = 'dir-' + pos;
+      previewPane.style.flex = '0 0 45%';
+      updateDirectionHint(pos);
+    });
+  });
 
-  function startAuto(){ autoTimer = setInterval(next, 5000); }
-  function resetAuto(){ clearInterval(autoTimer); startAuto(); }
-  startAuto();
+  updateDirectionHint('right'); // matches the default position on load
 
-  const sliderEl = document.getElementById('slider');
-  sliderEl.addEventListener('mouseenter', () => clearInterval(autoTimer));
-  sliderEl.addEventListener('mouseleave', startAuto);
+  // ---- Divider drag to resize ----
+  let dragging = false;
 
-  document.getElementById('year').textContent = new Date().getFullYear();
+  function startDrag() {
+    dragging = true;
+    divider.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    iframeOverlay.classList.add('active'); // blocks iframe from stealing mouse events
+  }
+
+  function stopDrag() {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.userSelect = '';
+    iframeOverlay.classList.remove('active');
+  }
+
+  divider.addEventListener('mousedown', startDrag);
+
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    resizeTo(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mouseup', stopDrag);
+  window.addEventListener('mouseleave', stopDrag);
+  // Safety net: if the button isn't actually held down anymore, stop dragging
+  window.addEventListener('mousemove', (e) => {
+    if (dragging && e.buttons === 0) stopDrag();
+  });
+
+  divider.addEventListener('touchstart', startDrag);
+  window.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const touch = e.touches[0];
+    resizeTo(touch.clientX, touch.clientY);
+  });
+  window.addEventListener('touchend', stopDrag);
+  window.addEventListener('touchcancel', stopDrag);
+
+  function resizeTo(x, y) {
+    const rect = mainArea.getBoundingClientRect();
+    const dir = mainArea.className;
+    let newSize;
+    if (dir === 'dir-right') {
+      newSize = rect.right - x;
+      newSize = Math.max(150, Math.min(newSize, rect.width - 150));
+    } else if (dir === 'dir-left') {
+      newSize = x - rect.left;
+      newSize = Math.max(150, Math.min(newSize, rect.width - 150));
+    } else if (dir === 'dir-bottom') {
+      newSize = rect.bottom - y;
+      newSize = Math.max(100, Math.min(newSize, rect.height - 100));
+    } else if (dir === 'dir-top') {
+      newSize = y - rect.top;
+      newSize = Math.max(100, Math.min(newSize, rect.height - 100));
+    }
+    previewPane.style.flex = '0 0 ' + newSize + 'px';
+  }
+
+  // ---- Dark / Light mode ----
+  darkModeCheckbox.addEventListener('change', () => {
+    const isDark = darkModeCheckbox.checked;
+    document.body.classList.toggle('dark-mode', isDark);
+
+    if (isDark) {
+      // Auto-switch editor & preview to black with pure white text (user can still override below)
+      editorColor.value = '#000000';
+      editorTextColor.value = '#ffffff';
+      previewColor.value = '#000000';
+      previewTextColor.value = '#ffffff';
+    } else {
+      // Back to light defaults
+      editorColor.value = '#ffffff';
+      editorTextColor.value = '#1e1e2e';
+      previewColor.value = '#ffffff';
+      previewTextColor.value = '#1e1e2e';
+    }
+    document.documentElement.style.setProperty('--editor-bg', editorColor.value);
+    document.documentElement.style.setProperty('--editor-text', editorTextColor.value);
+    document.documentElement.style.setProperty('--preview-bg', previewColor.value);
+    document.documentElement.style.setProperty('--preview-text', previewTextColor.value);
+    runCode();
+  });
+
+  // ---- Editor & Preview background/text color pickers (manual override) ----
+  editorColor.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--editor-bg', editorColor.value);
+  });
+
+  editorTextColor.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--editor-text', editorTextColor.value);
+  });
+
+  previewColor.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--preview-bg', previewColor.value);
+    runCode(); // re-run so the color is baked into the srcdoc as a default background
+  });
+
+  previewTextColor.addEventListener('input', () => {
+    runCode(); // re-run so the text color is baked into the srcdoc
+  });
+
+  // ---- Search inside the active editor tab only ----
+  function activeTextarea() {
+    return document.querySelector('.editor-wrap.active textarea');
+  }
+
+  function activeHighlightLayer() {
+    return document.querySelector('.editor-wrap.active .highlight-layer');
+  }
+
+  function openSearch() {
+    searchBar.classList.add('active');
+    searchToggleBtn.classList.add('active');
+    searchInput.focus();
+    searchInput.select();
+    currentMatchIndex = -1;
+    renderHighlights(true);
+  }
+
+  function closeSearch() {
+    searchBar.classList.remove('active');
+    searchToggleBtn.classList.remove('active');
+    matchCount.textContent = '';
+    currentMatchIndex = -1;
+    const hl = activeHighlightLayer();
+    const ta = activeTextarea();
+    if (hl && ta) hl.innerHTML = escapeHtml(ta.value); // clear highlights
+  }
+
+  searchToggleBtn.addEventListener('click', () => {
+    if (searchBar.classList.contains('active')) closeSearch();
+    else openSearch();
+  });
+
+  searchCloseBtn.addEventListener('click', closeSearch);
+
+  // Ctrl/Cmd+F while typing inside the editor opens this search instead of the browser's
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && document.activeElement.tagName === 'TEXTAREA') {
+      e.preventDefault();
+      openSearch();
+    }
+    if (e.key === 'Escape' && searchBar.classList.contains('active')) {
+      closeSearch();
+    }
+  });
+
+  function scrollTextareaToPos(ta, pos) {
+    const textBefore = ta.value.substring(0, pos);
+    const lineNumber = textBefore.split('\n').length - 1;
+    const style = getComputedStyle(ta);
+    const lineHeight = parseFloat(style.lineHeight) || 18;
+    const paddingTop = parseFloat(style.paddingTop) || 0;
+    const target = (lineNumber * lineHeight) - (ta.clientHeight / 2) + paddingTop;
+    ta.scrollTop = Math.max(0, target);
+  }
+
+  let currentMatchIndex = -1; // start offset of the currently-active match in the active tab's text
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Returns the start offset of every occurrence of `query` inside `text` (exact match, case-sensitive)
+  function getMatches(text, query) {
+    const matches = [];
+    if (!query) return matches;
+    let idx = 0;
+    while (true) {
+      const found = text.indexOf(query, idx);
+      if (found === -1) break;
+      matches.push(found);
+      idx = found + query.length;
+    }
+    return matches;
+  }
+
+  function syncScroll() {
+    const ta = activeTextarea();
+    const hl = activeHighlightLayer();
+    if (ta && hl) { hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; }
+  }
+
+  // Repaints highlight backgrounds for every match in the active tab and updates the total count.
+  // Never touches focus — the search input stays focused no matter how many times this runs.
+  function renderHighlights(scrollToCurrent) {
+    const ta = activeTextarea();
+    const hl = activeHighlightLayer();
+    if (!ta || !hl) return;
+    const query = searchInput.value;
+    const text = ta.value;
+
+    if (!query) {
+      hl.innerHTML = escapeHtml(text);
+      matchCount.textContent = '';
+      currentMatchIndex = -1;
+      syncScroll();
+      return;
+    }
+
+    const matches = getMatches(text, query);
+
+    if (matches.length === 0) {
+      hl.innerHTML = escapeHtml(text);
+      matchCount.textContent = '0 matches';
+      currentMatchIndex = -1;
+      syncScroll();
+      return;
+    }
+
+    if (!matches.includes(currentMatchIndex)) {
+      currentMatchIndex = matches[0];
+    }
+
+    let html = '';
+    let last = 0;
+    matches.forEach(pos => {
+      html += escapeHtml(text.slice(last, pos));
+      const isCurrent = pos === currentMatchIndex;
+      html += `<mark class="${isCurrent ? 'current' : ''}">${escapeHtml(text.slice(pos, pos + query.length))}</mark>`;
+      last = pos + query.length;
+    });
+    html += escapeHtml(text.slice(last));
+    hl.innerHTML = html;
+
+    matchCount.textContent = matches.length + (matches.length === 1 ? ' match' : ' matches');
+
+    if (scrollToCurrent) scrollTextareaToPos(ta, currentMatchIndex);
+    syncScroll();
+  }
+
+  // Moves the "current" match forward/back and scrolls it into view — WITHOUT focusing the
+  // textarea, so typing in the search box always keeps landing in the search box.
+  function findMatch(direction) {
+    const ta = activeTextarea();
+    const query = searchInput.value;
+    if (!ta || !query) return;
+    const matches = getMatches(ta.value, query);
+    if (matches.length === 0) { matchCount.textContent = '0 matches'; return; }
+
+    let pos = matches.indexOf(currentMatchIndex);
+    if (pos === -1) pos = 0;
+    else if (direction === 'next') pos = (pos + 1) % matches.length;
+    else pos = (pos - 1 + matches.length) % matches.length;
+
+    currentMatchIndex = matches[pos];
+    renderHighlights(true);
+  }
+
+  searchInput.addEventListener('input', () => {
+    currentMatchIndex = -1; // jump back to the first match whenever the query changes
+    renderHighlights(true);
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      findMatch(e.shiftKey ? 'prev' : 'next');
+    } else if (e.key === 'Escape') {
+      closeSearch();
+    }
+  });
+
+  searchNextBtn.addEventListener('click', () => findMatch('next'));
+  searchPrevBtn.addEventListener('click', () => findMatch('prev'));
+
+  runCode();
 </script>
 
 </body>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Code Preview by jaseem.store</title>
+<title>Live Code Preview</title>
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -151,6 +151,28 @@
     cursor: pointer;
     background: none;
   }
+  .color-pickers-group, .position-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* ---- Mobile responsive: preview can only go top/bottom, never left/right ---- */
+  @media (max-width: 700px) {
+    header { padding: 8px 10px; }
+    .btns { width: 100%; }
+    .color-pickers-group {
+      width: 100%;
+      justify-content: flex-start;
+    }
+    .position-group {
+      width: 100%;
+    }
+    .posBtn[data-pos="left"], .posBtn[data-pos="right"] {
+      display: none; /* only Top / Bottom allowed on small screens */
+    }
+  }
 
   main {
     flex: 1;
@@ -275,15 +297,17 @@
     box-shadow: inset 0 -2px 0 currentColor;
   }
   #searchToggleBtn {
-    flex: 0.1 5 auto;
-    background: silver;
+    flex: 0 0 auto;
+    background: var(--btn-bg);
     color: var(--text-dim);
+    font-size: 17px;
+    padding: 6px 14px;
+    border-radius: 6px 6px 0 0;
+    margin-left: 4px;
     opacity: 1;
-    font-size: 16.8px; /* 14px + 20% */
-    padding: 9.6px 12px; /* 8px/10px + 20% */
   }
-  #searchToggleBtn:hover { color: var(--accent); }
-  #searchToggleBtn.active { color: var(--accent); }
+  #searchToggleBtn:hover { background: var(--btn-hover); color: var(--accent); }
+  #searchToggleBtn.active { background: var(--accent); color: #ffffff; }
 
   .search-bar {
     display: none;
@@ -311,60 +335,22 @@
     background: var(--btn-bg);
     color: var(--text-main);
     border: none;
-    border-radius: 30px;
+    border-radius: 4px;
     padding: 5px 9px;
     cursor: pointer;
     font-size: 12px;
   }
   .search-bar button:hover { background: var(--btn-hover); }
   .match-count {
-    font-size: 20px;
+    font-size: 11px;
     color: var(--text-dim);
     white-space: nowrap;
     min-width: 62px;
   }
-  .editor-wrap {
-    flex: 1;
-    position: relative;
-    min-height: 0;
-    display: none;
-    background: var(--editor-bg);
-  }
-  .editor-wrap.active { display: block; }
-
-  /* Sits behind the textarea, mirrors its text, and paints highlight backgrounds
-     for search matches. Font metrics must match the textarea exactly so the
-     highlights line up with the real text on top. */
-  .highlight-layer {
-    position: absolute;
-    inset: 0;
-    margin: 0;
-    padding: 12px;
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 14px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    color: transparent;
-    overflow: hidden;
-    pointer-events: none;
-    tab-size: 2;
-  }
-  .highlight-layer mark {
-    background: rgba(124, 58, 237, 0.35);
-    color: transparent;
-    border-radius: 2px;
-  }
-  .highlight-layer mark.current {
-    background: rgba(124, 58, 237, 0.8);
-  }
-
   textarea {
-    position: absolute;
-    inset: 0;
+    flex: 1;
     width: 100%;
-    height: 100%;
-    background: transparent;
+    background: var(--editor-bg);
     color: var(--editor-text);
     border: none;
     outline: none;
@@ -373,8 +359,10 @@
     font-family: 'Consolas', 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.5;
+    display: none;
     tab-size: 2;
   }
+  textarea.active { display: block; }
   .preview-pane iframe {
     flex: 1;
     width: 100%;
@@ -416,7 +404,7 @@
   <h1>⚡ Live Code Preview</h1>
   <div class="btns">
     <button id="runBtn">▶ Run</button>
-    <button id="autoBtn" class="active">Auto Preview: ON</button>
+    <button id="autoBtn" class="active">Auto: ON</button>
     <div class="switch-wrap">
       <span>Dark Mode</span>
       <label class="switch">
@@ -427,28 +415,32 @@
       </label>
     </div>
     <div class="sep"></div>
-    <div class="color-picker-wrap">
-      <label for="editorColor">Editor BG</label>
-      <input type="color" id="editorColor" value="#ffffff">
-    </div>
-    <div class="color-picker-wrap">
-      <label for="editorTextColor">Editor Text</label>
-      <input type="color" id="editorTextColor" value="#1e1e2e">
-    </div>
-    <div class="color-picker-wrap">
-      <label for="previewColor">Preview BG</label>
-      <input type="color" id="previewColor" value="#ffffff">
-    </div>
-    <div class="color-picker-wrap">
-      <label for="previewTextColor">Preview Text</label>
-      <input type="color" id="previewTextColor" value="#1e1e2e">
+    <div class="color-pickers-group">
+      <div class="color-picker-wrap">
+        <label for="editorColor">Editor BG</label>
+        <input type="color" id="editorColor" value="#ffffff">
+      </div>
+      <div class="color-picker-wrap">
+        <label for="editorTextColor">Editor Text</label>
+        <input type="color" id="editorTextColor" value="#1e1e2e">
+      </div>
+      <div class="color-picker-wrap">
+        <label for="previewColor">Preview BG</label>
+        <input type="color" id="previewColor" value="#ffffff">
+      </div>
+      <div class="color-picker-wrap">
+        <label for="previewTextColor">Preview Text</label>
+        <input type="color" id="previewTextColor" value="#1e1e2e">
+      </div>
     </div>
     <div class="sep"></div>
-    <span style="font-size:12px;color:var(--text-dim);">Preview:</span>
-    <button data-pos="right" class="posBtn active">Right ➡</button>
-    <button data-pos="left" class="posBtn">⬅ Left</button>
-    <button data-pos="top" class="posBtn">⬆ Top</button>
-    <button data-pos="bottom" class="posBtn">Bottom ⬇</button>
+    <div class="position-group">
+      <span style="font-size:12px;color:var(--text-dim);">Preview:</span>
+      <button data-pos="right" class="posBtn active">Right ➡</button>
+      <button data-pos="left" class="posBtn">⬅ Left</button>
+      <button data-pos="top" class="posBtn">⬆ Top</button>
+      <button data-pos="bottom" class="posBtn">Bottom ⬇</button>
+    </div>
   </div>
 </header>
 
@@ -467,15 +459,10 @@
       <button id="searchNextBtn" title="Next match">▼</button>
       <button id="searchCloseBtn" title="Close">✕</button>
     </div>
-    <div class="editor-wrap active" id="htmlWrap">
-      <pre class="highlight-layer" id="htmlHL" aria-hidden="true"></pre>
-      <textarea id="html" spellcheck="false">&lt;h1&gt;Hello Jaseem 👋&lt;/h1&gt;
-&lt;p&gt;Write your HTML CSS & Java codes here&lt;/p&gt;
+    <textarea id="html" class="active" spellcheck="false">&lt;h1&gt;Hello Jaseem 👋&lt;/h1&gt;
+&lt;p&gt;Yahan apna HTML likho...&lt;/p&gt;
 &lt;button id="btn"&gt;Click me&lt;/button&gt;</textarea>
-    </div>
-    <div class="editor-wrap" id="cssWrap">
-      <pre class="highlight-layer" id="cssHL" aria-hidden="true"></pre>
-      <textarea id="css" spellcheck="false">body {
+    <textarea id="css" spellcheck="false">body {
   font-family: sans-serif;
   text-align: center;
   padding: 40px;
@@ -489,13 +476,9 @@ button {
   color: white;
   cursor: pointer;
 }</textarea>
-    </div>
-    <div class="editor-wrap" id="jsWrap">
-      <pre class="highlight-layer" id="jsHL" aria-hidden="true"></pre>
-      <textarea id="js" spellcheck="false">document.getElementById('btn').addEventListener('click', () => {
+    <textarea id="js" spellcheck="false">document.getElementById('btn').addEventListener('click', () => {
   alert('Button pressed!');
 });</textarea>
-    </div>
   </div>
 
   <div class="divider" id="divider">
@@ -514,13 +497,13 @@ button {
   </div>
 
   <div class="preview-pane" id="previewPane">
-    <div class="preview-header">🔎 Live Preview (drag the divider to resize)&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;<span id="directionHint">Write your code in the left window to preview</span></div>
+    <div class="preview-header">🔎 Live Preview (drag the divider to resize)&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;<span id="directionHint">Write your code in the left window to preview the output here</span></div>
     <iframe id="preview" title="preview"></iframe>
     <div class="iframe-overlay" id="iframeOverlay"></div>
   </div>
 </main>
 
-<footer>Auto-refreshes on every change (when Auto Preview: ON) • Use position buttons to move the preview • Drag the divider to resize</footer>
+<footer>Auto-refreshes on every change (when Auto: ON) • Use position buttons to move the preview • Drag the divider to resize</footer>
 
 <script>
   const htmlEl = document.getElementById('html');
@@ -529,7 +512,6 @@ button {
   const iframe = document.getElementById('preview');
   const tabs = document.querySelectorAll('.tab-btn');
   const textareas = document.querySelectorAll('textarea');
-  const editorWraps = document.querySelectorAll('.editor-wrap');
   const autoBtn = document.getElementById('autoBtn');
   const runBtn = document.getElementById('runBtn');
   const mainArea = document.getElementById('mainArea');
@@ -555,10 +537,9 @@ button {
   tabs.forEach(btn => {
     btn.addEventListener('click', () => {
       tabs.forEach(b => b.classList.remove('active'));
-      editorWraps.forEach(w => w.classList.remove('active'));
+      textareas.forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById(btn.dataset.tab + 'Wrap').classList.add('active');
-      if (searchBar.classList.contains('active')) renderHighlights(false);
+      document.getElementById(btn.dataset.tab).classList.add('active');
     });
   });
 
@@ -584,16 +565,12 @@ button {
     timeout = setTimeout(runCode, 400);
   }
 
-  [htmlEl, cssEl, jsEl].forEach(el => el.addEventListener('input', () => {
-    debounceRun();
-    if (searchBar.classList.contains('active')) renderHighlights(false);
-  }));
-  textareas.forEach(t => t.addEventListener('scroll', syncScroll));
+  [htmlEl, cssEl, jsEl].forEach(el => el.addEventListener('input', debounceRun));
   runBtn.addEventListener('click', runCode);
 
   autoBtn.addEventListener('click', () => {
     autoRun = !autoRun;
-    autoBtn.textContent = 'Auto Preview: ' + (autoRun ? 'ON' : 'OFF');
+    autoBtn.textContent = 'Auto: ' + (autoRun ? 'ON' : 'OFF');
     autoBtn.classList.toggle('active', autoRun);
   });
 
@@ -613,10 +590,10 @@ button {
   const directionHint = document.getElementById('directionHint');
   // When the preview sits on a given side, the editor is on the opposite side —
   // this map gives the word describing where the editor actually is.
-  const editorSideFor = { right: 'left', left: 'right', bottom: 'above', top: 'below of the preview' };
+  const editorSideFor = { right: 'left', left: 'right', bottom: 'above', top: 'below' };
 
   function updateDirectionHint(pos) {
-    directionHint.textContent = `Write your code in the ${editorSideFor[pos]} window to preview`;
+    directionHint.textContent = `Write your code in the ${editorSideFor[pos]} window to preview the output here`;
   }
 
   posBtns.forEach(btn => {
@@ -630,7 +607,32 @@ button {
     });
   });
 
-  updateDirectionHint('right'); // matches the default position on load
+  // ---- Mobile: default preview to Bottom, and never allow Left/Right ----
+  const MOBILE_BREAKPOINT = 700;
+  function isMobile() { return window.innerWidth <= MOBILE_BREAKPOINT; }
+
+  function setPosition(pos) {
+    posBtns.forEach(b => b.classList.toggle('active', b.dataset.pos === pos));
+    mainArea.className = 'dir-' + pos;
+    previewPane.style.flex = '0 0 45%';
+    updateDirectionHint(pos);
+  }
+
+  function applyMobileDefaultIfNeeded() {
+    if (!isMobile()) return;
+    const currentPos = mainArea.className.replace('dir-', '');
+    if (currentPos === 'left' || currentPos === 'right') {
+      setPosition('bottom');
+    }
+  }
+
+  if (isMobile()) {
+    setPosition('bottom');
+  } else {
+    updateDirectionHint('right'); // matches the default position on load
+  }
+
+  window.addEventListener('resize', applyMobileDefaultIfNeeded);
 
   // ---- Divider drag to resize ----
   let dragging = false;
@@ -738,11 +740,7 @@ button {
 
   // ---- Search inside the active editor tab only ----
   function activeTextarea() {
-    return document.querySelector('.editor-wrap.active textarea');
-  }
-
-  function activeHighlightLayer() {
-    return document.querySelector('.editor-wrap.active .highlight-layer');
+    return document.querySelector('.editor-pane textarea.active');
   }
 
   function openSearch() {
@@ -750,18 +748,13 @@ button {
     searchToggleBtn.classList.add('active');
     searchInput.focus();
     searchInput.select();
-    currentMatchIndex = -1;
-    renderHighlights(true);
+    updateMatchCount();
   }
 
   function closeSearch() {
     searchBar.classList.remove('active');
     searchToggleBtn.classList.remove('active');
     matchCount.textContent = '';
-    currentMatchIndex = -1;
-    const hl = activeHighlightLayer();
-    const ta = activeTextarea();
-    if (hl && ta) hl.innerHTML = escapeHtml(ta.value); // clear highlights
   }
 
   searchToggleBtn.addEventListener('click', () => {
@@ -782,6 +775,21 @@ button {
     }
   });
 
+  // Switching tabs while search is open: keep it open, just re-count matches for the new tab
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (searchBar.classList.contains('active')) updateMatchCount();
+    });
+  });
+
+  function updateMatchCount() {
+    const ta = activeTextarea();
+    const query = searchInput.value;
+    if (!query || !ta) { matchCount.textContent = ''; return; }
+    const count = ta.value.split(query).length - 1;
+    matchCount.textContent = count + (count === 1 ? ' match' : ' matches');
+  }
+
   function scrollTextareaToPos(ta, pos) {
     const textBefore = ta.value.substring(0, pos);
     const lineNumber = textBefore.split('\n').length - 1;
@@ -792,101 +800,33 @@ button {
     ta.scrollTop = Math.max(0, target);
   }
 
-  let currentMatchIndex = -1; // start offset of the currently-active match in the active tab's text
-
-  function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  // Returns the start offset of every occurrence of `query` inside `text` (exact match, case-sensitive)
-  function getMatches(text, query) {
-    const matches = [];
-    if (!query) return matches;
-    let idx = 0;
-    while (true) {
-      const found = text.indexOf(query, idx);
-      if (found === -1) break;
-      matches.push(found);
-      idx = found + query.length;
-    }
-    return matches;
-  }
-
-  function syncScroll() {
-    const ta = activeTextarea();
-    const hl = activeHighlightLayer();
-    if (ta && hl) { hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; }
-  }
-
-  // Repaints highlight backgrounds for every match in the active tab and updates the total count.
-  // Never touches focus — the search input stays focused no matter how many times this runs.
-  function renderHighlights(scrollToCurrent) {
-    const ta = activeTextarea();
-    const hl = activeHighlightLayer();
-    if (!ta || !hl) return;
-    const query = searchInput.value;
-    const text = ta.value;
-
-    if (!query) {
-      hl.innerHTML = escapeHtml(text);
-      matchCount.textContent = '';
-      currentMatchIndex = -1;
-      syncScroll();
-      return;
-    }
-
-    const matches = getMatches(text, query);
-
-    if (matches.length === 0) {
-      hl.innerHTML = escapeHtml(text);
-      matchCount.textContent = '0 matches';
-      currentMatchIndex = -1;
-      syncScroll();
-      return;
-    }
-
-    if (!matches.includes(currentMatchIndex)) {
-      currentMatchIndex = matches[0];
-    }
-
-    let html = '';
-    let last = 0;
-    matches.forEach(pos => {
-      html += escapeHtml(text.slice(last, pos));
-      const isCurrent = pos === currentMatchIndex;
-      html += `<mark class="${isCurrent ? 'current' : ''}">${escapeHtml(text.slice(pos, pos + query.length))}</mark>`;
-      last = pos + query.length;
-    });
-    html += escapeHtml(text.slice(last));
-    hl.innerHTML = html;
-
-    matchCount.textContent = matches.length + (matches.length === 1 ? ' match' : ' matches');
-
-    if (scrollToCurrent) scrollTextareaToPos(ta, currentMatchIndex);
-    syncScroll();
-  }
-
-  // Moves the "current" match forward/back and scrolls it into view — WITHOUT focusing the
-  // textarea, so typing in the search box always keeps landing in the search box.
   function findMatch(direction) {
     const ta = activeTextarea();
     const query = searchInput.value;
     if (!ta || !query) return;
-    const matches = getMatches(ta.value, query);
-    if (matches.length === 0) { matchCount.textContent = '0 matches'; return; }
+    const text = ta.value;
+    let idx = -1;
 
-    let pos = matches.indexOf(currentMatchIndex);
-    if (pos === -1) pos = 0;
-    else if (direction === 'next') pos = (pos + 1) % matches.length;
-    else pos = (pos - 1 + matches.length) % matches.length;
+    if (direction === 'next') {
+      idx = text.indexOf(query, ta.selectionEnd);
+      if (idx === -1) idx = text.indexOf(query, 0); // wrap to start
+    } else {
+      const from = Math.max(0, ta.selectionStart - 1);
+      idx = text.lastIndexOf(query, from - 1);
+      if (idx === -1) idx = text.lastIndexOf(query); // wrap to end
+    }
 
-    currentMatchIndex = matches[pos];
-    renderHighlights(true);
+    if (idx === -1) { matchCount.textContent = '0 matches'; return; }
+
+    ta.focus();
+    ta.setSelectionRange(idx, idx + query.length);
+    scrollTextareaToPos(ta, idx);
+    updateMatchCount();
   }
 
   searchInput.addEventListener('input', () => {
-    currentMatchIndex = -1; // jump back to the first match whenever the query changes
-    renderHighlights(true);
+    updateMatchCount();
+    findMatch('next');
   });
 
   searchInput.addEventListener('keydown', (e) => {

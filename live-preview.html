@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Code Preview by jaseem.store</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --app-bg: #f4f4f8;
+    --panel-bg: #ffffff;
+    --border-color: #dcdce6;
+    --text-main: #1e1e2e;
+    --text-dim: #55586b;
+    --accent: #7c3aed;
+    --btn-bg: #e6e6f0;
+    --btn-hover: #d5d5e6;
+    --editor-bg: #ffffff;
+    --editor-text: #1e1e2e;
+    --preview-bg: #ffffff;
+    --preview-text: #1e1e2e;
+  }
+  body.dark-mode {
+    --app-bg: #1e1e2e;
+    --panel-bg: #181825;
+    --border-color: #313244;
+    --text-main: #e0e0e0;
+    --text-dim: #a6adc8;
+    --accent: #cba6f7;
+    --btn-bg: #313244;
+    --btn-hover: #45475a;
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: var(--app-bg);
+    color: var(--text-main);
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  header {
+    padding: 10px 16px;
+    background: var(--panel-bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    color: var(--accent);
+  }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .btns button, .btns select {
+    background: var(--btn-bg);
+    color: var(--text-main);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .btns button:hover { background: var(--btn-hover); }
+  .btns button.active { background: var(--accent); color: var(--app-bg); font-weight: bold; }
+  .sep { width: 1px; height: 20px; background: var(--border-color); margin: 0 4px; }
+
+  /* Sliding toggle switch for Dark Mode — ON/OFF text lives inside the track itself */
+  .switch-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .switch {
+    position: relative;
+    width: 56px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch-track {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(#c7c7d1, #b0b0bd); /* silver = OFF */
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  .switch-track::before {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    top: 3px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.3s ease;
+    z-index: 2;
+  }
+  .switch-off-text, .switch-on-text {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .switch-off-text { right: 6px; color: #55586b; opacity: 1; }
+  .switch-on-text { left: 6px; color: #ffffff; opacity: 0; }
+  .switch input:checked + .switch-track {
+    background: linear-gradient(#a78bfa, #7c3aed); /* colorful = ON */
+  }
+  .switch input:checked + .switch-track::before {
+    transform: translateX(32px);
+  }
+  .switch input:checked ~ .switch-on-text { opacity: 1; }
+  .switch input:checked ~ .switch-off-text { opacity: 0; }
+
+  .color-picker-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--btn-bg);
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .color-picker-wrap label {
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .color-picker-wrap input[type="color"] {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 4px;
+    padding: 0;
+    cursor: pointer;
+    background: none;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    position: relative;
+  }
+  main.dir-right { flex-direction: row; }
+  main.dir-left { flex-direction: row-reverse; }
+  main.dir-bottom { flex-direction: column; }
+  main.dir-top { flex-direction: column-reverse; }
+
+  .editor-pane, .preview-pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .editor-pane { flex: 1; }
+  .preview-pane {
+    flex: 0 0 45%;
+    position: relative;
+  }
+
+  .divider {
+    background: var(--border-color);
+    flex-shrink: 0;
+    z-index: 5;
+    position: relative;
+  }
+  main.dir-right .divider, main.dir-left .divider {
+    width: 16px; cursor: col-resize;
+    border-left: 1px solid var(--app-bg);
+    border-right: 1px solid var(--app-bg);
+  }
+  main.dir-bottom .divider, main.dir-top .divider {
+    height: 16px; cursor: row-resize;
+    border-top: 1px solid var(--app-bg);
+    border-bottom: 1px solid var(--app-bg);
+  }
+  .divider:hover, .divider.dragging { background: #111111; }
+
+  /* Scrolling marquee text inside the separator — shows www.jaseem.store on a seamless loop
+     (content is duplicated so at least two copies are always visible while scrolling) */
+  .divider-marquee {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .marquee-track {
+    display: flex;
+  }
+  .marquee-track span {
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+  }
+  main.dir-right .marquee-track, main.dir-left .marquee-track {
+    flex-direction: column;
+    align-items: center;
+    animation: marqueeVertical 9s linear infinite;
+  }
+  main.dir-right .marquee-track span, main.dir-left .marquee-track span {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    padding: 14px 0;
+  }
+  main.dir-top .marquee-track, main.dir-bottom .marquee-track {
+    flex-direction: row;
+    animation: marqueeHorizontal 14s linear infinite;
+  }
+  main.dir-top .marquee-track span, main.dir-bottom .marquee-track span {
+    padding: 0 16px;
+  }
+  @keyframes marqueeVertical {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-50%); }
+  }
+  @keyframes marqueeHorizontal {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .divider:hover .marquee-track span,
+  .divider.dragging .marquee-track span { color: #ffffff; }
+
+  .tabs {
+    display: flex;
+    background: var(--panel-bg);
+    flex-shrink: 0;
+    gap: 2px;
+    padding: 4px 4px 0 4px;
+  }
+  .tabs button {
+    flex: 1;
+    padding: 8px;
+    color: var(--text-dim);
+    border: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+  }
+  .tabs button:hover { opacity: 0.85; }
+  .tabs button[data-tab="html"] { background: rgba(230, 126, 34, 0.18); color: #e67e22; }
+  .tabs button[data-tab="css"]  { background: rgba(52, 152, 219, 0.18); color: #3498db; }
+  .tabs button[data-tab="js"]   { background: rgba(241, 196, 15, 0.20); color: #d4ac0d; }
+  .tabs button.active {
+    opacity: 1;
+    background: var(--app-bg);
+    box-shadow: inset 0 -2px 0 currentColor;
+  }
+  #searchToggleBtn {
+    flex: 0.1 5 auto;
+    background: silver;
+    color: var(--text-dim);
+    opacity: 1;
+    font-size: 16.8px; /* 14px + 20% */
+    padding: 9.6px 12px; /* 8px/10px + 20% */
+  }
+  #searchToggleBtn:hover { color: var(--accent); }
+  #searchToggleBtn.active { color: var(--accent); }
+
+  .search-bar {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+  }
+  .search-bar.active { display: flex; }
+  .search-bar input {
+    flex: 1;
+    min-width: 0;
+    background: var(--app-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 13px;
+    outline: none;
+  }
+  .search-bar input:focus { border-color: var(--accent); }
+  .search-bar button {
+    background: var(--btn-bg);
+    color: var(--text-main);
+    border: none;
+    border-radius: 30px;
+    padding: 5px 9px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .search-bar button:hover { background: var(--btn-hover); }
+  .match-count {
+    font-size: 20px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    min-width: 62px;
+  }
+  .editor-wrap {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+    display: none;
+    background: var(--editor-bg);
+  }
+  .editor-wrap.active { display: block; }
+
+  /* Sits behind the textarea, mirrors its text, and paints highlight backgrounds
+     for search matches. Font metrics must match the textarea exactly so the
+     highlights line up with the real text on top. */
+  .highlight-layer {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 12px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: transparent;
+    overflow: hidden;
+    pointer-events: none;
+    tab-size: 2;
+  }
+  .highlight-layer mark {
+    background: rgba(124, 58, 237, 0.35);
+    color: transparent;
+    border-radius: 2px;
+  }
+  .highlight-layer mark.current {
+    background: rgba(124, 58, 237, 0.8);
+  }
+
+  textarea {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    color: var(--editor-text);
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 12px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    tab-size: 2;
+  }
+  .preview-pane iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: var(--preview-bg);
+  }
+  .iframe-overlay {
+    position: absolute;
+    inset: 0;
+    top: 33px; /* below preview-header */
+    display: none;
+    z-index: 10;
+    cursor: inherit;
+  }
+  .iframe-overlay.active { display: block; }
+  .preview-header {
+    padding: 8px 12px;
+    background: linear-gradient(to bottom, #e4e4ec, #c7c7d2);
+    font-size: 13px;
+    font-weight: 600;
+    color: #3a3a45;
+    flex-shrink: 0;
+    user-select: none;
+    border-bottom: 1px solid #b3b3c0;
+  }
+  footer {
+    text-align: center;
+    padding: 4px;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--panel-bg);
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ Live Code Preview</h1>
+  <div class="btns">
+    <button id="runBtn">▶ Run</button>
+    <button id="autoBtn" class="active">Auto Preview: ON</button>
+    <div class="switch-wrap">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input type="checkbox" id="darkModeCheckbox">
+        <span class="switch-track"></span>
+        <span class="switch-on-text">ON</span>
+        <span class="switch-off-text">OFF</span>
+      </label>
+    </div>
+    <div class="sep"></div>
+    <div class="color-picker-wrap">
+      <label for="editorColor">Editor BG</label>
+      <input type="color" id="editorColor" value="#ffffff">
+    </div>
+    <div class="color-picker-wrap">
+      <label for="editorTextColor">Editor Text</label>
+      <input type="color" id="editorTextColor" value="#1e1e2e">
+    </div>
+    <div class="color-picker-wrap">
+      <label for="previewColor">Preview BG</label>
+      <input type="color" id="previewColor" value="#ffffff">
+    </div>
+    <div class="color-picker-wrap">
+      <label for="previewTextColor">Preview Text</label>
+      <input type="color" id="previewTextColor" value="#1e1e2e">
+    </div>
+    <div class="sep"></div>
+    <span style="font-size:12px;color:var(--text-dim);">Preview:</span>
+    <button data-pos="right" class="posBtn active">Right ➡</button>
+    <button data-pos="left" class="posBtn">⬅ Left</button>
+    <button data-pos="top" class="posBtn">⬆ Top</button>
+    <button data-pos="bottom" class="posBtn">Bottom ⬇</button>
+  </div>
+</header>
+
+<main class="dir-right" id="mainArea">
+  <div class="editor-pane" id="editorPane">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="html">HTML</button>
+      <button class="tab-btn" data-tab="css">CSS</button>
+      <button class="tab-btn" data-tab="js">JS</button>
+      <button id="searchToggleBtn" title="Search in editor (Ctrl+F)">🔍</button>
+    </div>
+    <div class="search-bar" id="searchBar">
+      <input type="text" id="searchInput" placeholder="Search in this tab...">
+      <span id="matchCount" class="match-count"></span>
+      <button id="searchPrevBtn" title="Previous match">▲</button>
+      <button id="searchNextBtn" title="Next match">▼</button>
+      <button id="searchCloseBtn" title="Close">✕</button>
+    </div>
+    <div class="editor-wrap active" id="htmlWrap">
+      <pre class="highlight-layer" id="htmlHL" aria-hidden="true"></pre>
+      <textarea id="html" spellcheck="false">&lt;h1&gt;Hello Jaseem 👋&lt;/h1&gt;
+&lt;p&gt;Write your HTML CSS & Java codes here&lt;/p&gt;
+&lt;button id="btn"&gt;Click me&lt;/button&gt;</textarea>
+    </div>
+    <div class="editor-wrap" id="cssWrap">
+      <pre class="highlight-layer" id="cssHL" aria-hidden="true"></pre>
+      <textarea id="css" spellcheck="false">body {
+  font-family: sans-serif;
+  text-align: center;
+  padding: 40px;
+  color: #333;
+}
+button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #6c5ce7;
+  color: white;
+  cursor: pointer;
+}</textarea>
+    </div>
+    <div class="editor-wrap" id="jsWrap">
+      <pre class="highlight-layer" id="jsHL" aria-hidden="true"></pre>
+      <textarea id="js" spellcheck="false">document.getElementById('btn').addEventListener('click', () => {
+  alert('Button pressed!');
+});</textarea>
+    </div>
+  </div>
+
+  <div class="divider" id="divider">
+    <div class="divider-marquee">
+      <div class="marquee-track">
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+        <span>www.jaseem.store</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-pane" id="previewPane">
+    <div class="preview-header">🔎 Live Preview (drag the divider to resize)&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;<span id="directionHint">Write your code in the left window to preview</span></div>
+    <iframe id="preview" title="preview"></iframe>
+    <div class="iframe-overlay" id="iframeOverlay"></div>
+  </div>
+</main>
+
+<footer>Auto-refreshes on every change (when Auto Preview: ON) • Use position buttons to move the preview • Drag the divider to resize</footer>
+
+<script>
+  const htmlEl = document.getElementById('html');
+  const cssEl = document.getElementById('css');
+  const jsEl = document.getElementById('js');
+  const iframe = document.getElementById('preview');
+  const tabs = document.querySelectorAll('.tab-btn');
+  const textareas = document.querySelectorAll('textarea');
+  const editorWraps = document.querySelectorAll('.editor-wrap');
+  const autoBtn = document.getElementById('autoBtn');
+  const runBtn = document.getElementById('runBtn');
+  const mainArea = document.getElementById('mainArea');
+  const divider = document.getElementById('divider');
+  const previewPane = document.getElementById('previewPane');
+  const posBtns = document.querySelectorAll('.posBtn');
+  const iframeOverlay = document.getElementById('iframeOverlay');
+  const darkModeCheckbox = document.getElementById('darkModeCheckbox');
+  const editorColor = document.getElementById('editorColor');
+  const editorTextColor = document.getElementById('editorTextColor');
+  const previewColor = document.getElementById('previewColor');
+  const previewTextColor = document.getElementById('previewTextColor');
+  const searchToggleBtn = document.getElementById('searchToggleBtn');
+  const searchBar = document.getElementById('searchBar');
+  const searchInput = document.getElementById('searchInput');
+  const searchPrevBtn = document.getElementById('searchPrevBtn');
+  const searchNextBtn = document.getElementById('searchNextBtn');
+  const searchCloseBtn = document.getElementById('searchCloseBtn');
+  const matchCount = document.getElementById('matchCount');
+
+  let autoRun = true;
+
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      editorWraps.forEach(w => w.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab + 'Wrap').classList.add('active');
+      if (searchBar.classList.contains('active')) renderHighlights(false);
+    });
+  });
+
+  function runCode() {
+    const previewBg = previewColor.value;
+    const previewText = previewTextColor.value;
+    const doc = `
+      <!DOCTYPE html>
+      <html style="background:${previewBg};">
+      <head><style>${cssEl.value}</style></head>
+      <body style="background:${previewBg} !important; color:${previewText} !important;">${htmlEl.value}
+        <script>${jsEl.value}<\/script>
+      </body>
+      </html>
+    `;
+    iframe.srcdoc = doc;
+  }
+
+  let timeout;
+  function debounceRun() {
+    if (!autoRun) return;
+    clearTimeout(timeout);
+    timeout = setTimeout(runCode, 400);
+  }
+
+  [htmlEl, cssEl, jsEl].forEach(el => el.addEventListener('input', () => {
+    debounceRun();
+    if (searchBar.classList.contains('active')) renderHighlights(false);
+  }));
+  textareas.forEach(t => t.addEventListener('scroll', syncScroll));
+  runBtn.addEventListener('click', runCode);
+
+  autoBtn.addEventListener('click', () => {
+    autoRun = !autoRun;
+    autoBtn.textContent = 'Auto Preview: ' + (autoRun ? 'ON' : 'OFF');
+    autoBtn.classList.toggle('active', autoRun);
+  });
+
+  // Tab key support
+  textareas.forEach(t => {
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = t.selectionStart, end = t.selectionEnd;
+        t.value = t.value.substring(0, start) + '  ' + t.value.substring(end);
+        t.selectionStart = t.selectionEnd = start + 2;
+      }
+    });
+  });
+
+  // ---- Position switching ----
+  const directionHint = document.getElementById('directionHint');
+  // When the preview sits on a given side, the editor is on the opposite side —
+  // this map gives the word describing where the editor actually is.
+  const editorSideFor = { right: 'left', left: 'right', bottom: 'above', top: 'below of the preview' };
+
+  function updateDirectionHint(pos) {
+    directionHint.textContent = `Write your code in the ${editorSideFor[pos]} window to preview`;
+  }
+
+  posBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      posBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const pos = btn.dataset.pos;
+      mainArea.className = 'dir-' + pos;
+      previewPane.style.flex = '0 0 45%';
+      updateDirectionHint(pos);
+    });
+  });
+
+  updateDirectionHint('right'); // matches the default position on load
+
+  // ---- Divider drag to resize ----
+  let dragging = false;
+
+  function startDrag() {
+    dragging = true;
+    divider.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    iframeOverlay.classList.add('active'); // blocks iframe from stealing mouse events
+  }
+
+  function stopDrag() {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.userSelect = '';
+    iframeOverlay.classList.remove('active');
+  }
+
+  divider.addEventListener('mousedown', startDrag);
+
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    resizeTo(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mouseup', stopDrag);
+  window.addEventListener('mouseleave', stopDrag);
+  // Safety net: if the button isn't actually held down anymore, stop dragging
+  window.addEventListener('mousemove', (e) => {
+    if (dragging && e.buttons === 0) stopDrag();
+  });
+
+  divider.addEventListener('touchstart', startDrag);
+  window.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const touch = e.touches[0];
+    resizeTo(touch.clientX, touch.clientY);
+  });
+  window.addEventListener('touchend', stopDrag);
+  window.addEventListener('touchcancel', stopDrag);
+
+  function resizeTo(x, y) {
+    const rect = mainArea.getBoundingClientRect();
+    const dir = mainArea.className;
+    let newSize;
+    if (dir === 'dir-right') {
+      newSize = rect.right - x;
+      newSize = Math.max(150, Math.min(newSize, rect.width - 150));
+    } else if (dir === 'dir-left') {
+      newSize = x - rect.left;
+      newSize = Math.max(150, Math.min(newSize, rect.width - 150));
+    } else if (dir === 'dir-bottom') {
+      newSize = rect.bottom - y;
+      newSize = Math.max(100, Math.min(newSize, rect.height - 100));
+    } else if (dir === 'dir-top') {
+      newSize = y - rect.top;
+      newSize = Math.max(100, Math.min(newSize, rect.height - 100));
+    }
+    previewPane.style.flex = '0 0 ' + newSize + 'px';
+  }
+
+  // ---- Dark / Light mode ----
+  darkModeCheckbox.addEventListener('change', () => {
+    const isDark = darkModeCheckbox.checked;
+    document.body.classList.toggle('dark-mode', isDark);
+
+    if (isDark) {
+      // Auto-switch editor & preview to black with pure white text (user can still override below)
+      editorColor.value = '#000000';
+      editorTextColor.value = '#ffffff';
+      previewColor.value = '#000000';
+      previewTextColor.value = '#ffffff';
+    } else {
+      // Back to light defaults
+      editorColor.value = '#ffffff';
+      editorTextColor.value = '#1e1e2e';
+      previewColor.value = '#ffffff';
+      previewTextColor.value = '#1e1e2e';
+    }
+    document.documentElement.style.setProperty('--editor-bg', editorColor.value);
+    document.documentElement.style.setProperty('--editor-text', editorTextColor.value);
+    document.documentElement.style.setProperty('--preview-bg', previewColor.value);
+    document.documentElement.style.setProperty('--preview-text', previewTextColor.value);
+    runCode();
+  });
+
+  // ---- Editor & Preview background/text color pickers (manual override) ----
+  editorColor.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--editor-bg', editorColor.value);
+  });
+
+  editorTextColor.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--editor-text', editorTextColor.value);
+  });
+
+  previewColor.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--preview-bg', previewColor.value);
+    runCode(); // re-run so the color is baked into the srcdoc as a default background
+  });
+
+  previewTextColor.addEventListener('input', () => {
+    runCode(); // re-run so the text color is baked into the srcdoc
+  });
+
+  // ---- Search inside the active editor tab only ----
+  function activeTextarea() {
+    return document.querySelector('.editor-wrap.active textarea');
+  }
+
+  function activeHighlightLayer() {
+    return document.querySelector('.editor-wrap.active .highlight-layer');
+  }
+
+  function openSearch() {
+    searchBar.classList.add('active');
+    searchToggleBtn.classList.add('active');
+    searchInput.focus();
+    searchInput.select();
+    currentMatchIndex = -1;
+    renderHighlights(true);
+  }
+
+  function closeSearch() {
+    searchBar.classList.remove('active');
+    searchToggleBtn.classList.remove('active');
+    matchCount.textContent = '';
+    currentMatchIndex = -1;
+    const hl = activeHighlightLayer();
+    const ta = activeTextarea();
+    if (hl && ta) hl.innerHTML = escapeHtml(ta.value); // clear highlights
+  }
+
+  searchToggleBtn.addEventListener('click', () => {
+    if (searchBar.classList.contains('active')) closeSearch();
+    else openSearch();
+  });
+
+  searchCloseBtn.addEventListener('click', closeSearch);
+
+  // Ctrl/Cmd+F while typing inside the editor opens this search instead of the browser's
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && document.activeElement.tagName === 'TEXTAREA') {
+      e.preventDefault();
+      openSearch();
+    }
+    if (e.key === 'Escape' && searchBar.classList.contains('active')) {
+      closeSearch();
+    }
+  });
+
+  function scrollTextareaToPos(ta, pos) {
+    const textBefore = ta.value.substring(0, pos);
+    const lineNumber = textBefore.split('\n').length - 1;
+    const style = getComputedStyle(ta);
+    const lineHeight = parseFloat(style.lineHeight) || 18;
+    const paddingTop = parseFloat(style.paddingTop) || 0;
+    const target = (lineNumber * lineHeight) - (ta.clientHeight / 2) + paddingTop;
+    ta.scrollTop = Math.max(0, target);
+  }
+
+  let currentMatchIndex = -1; // start offset of the currently-active match in the active tab's text
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Returns the start offset of every occurrence of `query` inside `text` (exact match, case-sensitive)
+  function getMatches(text, query) {
+    const matches = [];
+    if (!query) return matches;
+    let idx = 0;
+    while (true) {
+      const found = text.indexOf(query, idx);
+      if (found === -1) break;
+      matches.push(found);
+      idx = found + query.length;
+    }
+    return matches;
+  }
+
+  function syncScroll() {
+    const ta = activeTextarea();
+    const hl = activeHighlightLayer();
+    if (ta && hl) { hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; }
+  }
+
+  // Repaints highlight backgrounds for every match in the active tab and updates the total count.
+  // Never touches focus — the search input stays focused no matter how many times this runs.
+  function renderHighlights(scrollToCurrent) {
+    const ta = activeTextarea();
+    const hl = activeHighlightLayer();
+    if (!ta || !hl) return;
+    const query = searchInput.value;
+    const text = ta.value;
+
+    if (!query) {
+      hl.innerHTML = escapeHtml(text);
+      matchCount.textContent = '';
+      currentMatchIndex = -1;
+      syncScroll();
+      return;
+    }
+
+    const matches = getMatches(text, query);
+
+    if (matches.length === 0) {
+      hl.innerHTML = escapeHtml(text);
+      matchCount.textContent = '0 matches';
+      currentMatchIndex = -1;
+      syncScroll();
+      return;
+    }
+
+    if (!matches.includes(currentMatchIndex)) {
+      currentMatchIndex = matches[0];
+    }
+
+    let html = '';
+    let last = 0;
+    matches.forEach(pos => {
+      html += escapeHtml(text.slice(last, pos));
+      const isCurrent = pos === currentMatchIndex;
+      html += `<mark class="${isCurrent ? 'current' : ''}">${escapeHtml(text.slice(pos, pos + query.length))}</mark>`;
+      last = pos + query.length;
+    });
+    html += escapeHtml(text.slice(last));
+    hl.innerHTML = html;
+
+    matchCount.textContent = matches.length + (matches.length === 1 ? ' match' : ' matches');
+
+    if (scrollToCurrent) scrollTextareaToPos(ta, currentMatchIndex);
+    syncScroll();
+  }
+
+  // Moves the "current" match forward/back and scrolls it into view — WITHOUT focusing the
+  // textarea, so typing in the search box always keeps landing in the search box.
+  function findMatch(direction) {
+    const ta = activeTextarea();
+    const query = searchInput.value;
+    if (!ta || !query) return;
+    const matches = getMatches(ta.value, query);
+    if (matches.length === 0) { matchCount.textContent = '0 matches'; return; }
+
+    let pos = matches.indexOf(currentMatchIndex);
+    if (pos === -1) pos = 0;
+    else if (direction === 'next') pos = (pos + 1) % matches.length;
+    else pos = (pos - 1 + matches.length) % matches.length;
+
+    currentMatchIndex = matches[pos];
+    renderHighlights(true);
+  }
+
+  searchInput.addEventListener('input', () => {
+    currentMatchIndex = -1; // jump back to the first match whenever the query changes
+    renderHighlights(true);
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      findMatch(e.shiftKey ? 'prev' : 'next');
+    } else if (e.key === 'Escape') {
+      closeSearch();
+    }
+  });
+
+  searchNextBtn.addEventListener('click', () => findMatch('next'));
+  searchPrevBtn.addEventListener('click', () => findMatch('prev'));
+
+  runCode();
+</script>
+
+</body>
+</html>

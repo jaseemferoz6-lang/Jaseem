@@ -1,1 +1,1871 @@
 
+(function(){
+  function b64ToBlob(b64, mime){
+    const binStr = atob(b64);
+    const len = binStr.length;
+    const bytes = new Uint8Array(len);
+    for(let i=0;i<len;i++) bytes[i] = binStr.charCodeAt(i);
+    return new Blob([bytes], {type: mime});
+  }
+  function loadScriptFromB64(b64){
+    return new Promise((resolve, reject)=>{
+      const blob = b64ToBlob(b64, 'application/javascript');
+      const url = URL.createObjectURL(blob);
+      const s = document.createElement('script');
+      s.src = url;
+      s.onload = ()=> resolve();
+      s.onerror = ()=> reject(new Error('Library load failed'));
+      document.head.appendChild(s);
+    });
+  }
+  async function boot(){
+    const data = window.__PDF_EDITOR_LIB_DATA;
+    await loadScriptFromB64(data.pdflib);
+    await loadScriptFromB64(data.pdfjs);
+    await loadScriptFromB64(data.jspdf);
+    await loadScriptFromB64(data.autotable);
+    await loadScriptFromB64(data.mammoth);
+    await loadScriptFromB64(data.xlsx);
+    await loadScriptFromB64(data.jszip);
+    await loadScriptFromB64(data.html2canvas);
+    const workerBlob = b64ToBlob(data.pdfworker, 'application/javascript');
+    window.__pdfWorkerBlobUrl = URL.createObjectURL(workerBlob);
+    initApp();
+  }
+  window.addEventListener('DOMContentLoaded', boot);
+})();
+
+
+
+function initApp(){
+const { PDFDocument, degrees } = PDFLib;
+pdfjsLib.GlobalWorkerOptions.workerSrc = window.__pdfWorkerBlobUrl;
+
+const TOOLS = {
+  merge:    { title:'Merge PDFs', sub:'Combine multiple PDF files into one file in the selected order.', stamp:'MERGE' },
+  split:    { title:'Split / Extract Pages', sub:'Extract selected pages from a PDF or split it into separate files.', stamp:'SPLIT' },
+  insert:   { title:'Insert Page', sub:'Insert a blank page or a page from another PDF at any position.', stamp:'INSERT' },
+  reader:   { title:'PDF Reader', sub:'Read the PDF page by page directly in your browser.', stamp:'READ' },
+  img2pdf:  { title:'JPG / PNG → PDF', sub:'Convert one or more images into a single PDF file.', stamp:'IMG→PDF' },
+  pdf2img:  { title:'PDF → JPG', sub:'Convert every PDF page into a high-quality JPG image.', stamp:'PDF→IMG' },
+  pdf2word: { title:'PDF → Word', sub:'Convert the PDF to an editable Word (.docx) file with headings and tables.', stamp:'PDF→DOCX' },
+  word2pdf: { title:'Word → PDF', sub:'Convert a .docx file to PDF (basic layout).', stamp:'DOC→PDF' },
+  pdf2excel:{ title:'PDF → Excel', sub:'Extract PDF text/tables into Excel (.xlsx) rows.', stamp:'PDF→XLS' },
+  excel2pdf:{ title:'Excel → PDF', sub:'Convert an .xlsx sheet into a PDF table.', stamp:'XLS→PDF' },
+};
+
+const toolArea  = document.getElementById('toolArea');
+const toolTitle = document.getElementById('toolTitle');
+const toolSub   = document.getElementById('toolSub');
+const toolStamp = document.getElementById('toolStamp');
+
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+    loadTool(item.dataset.tool);
+  });
+});
+
+function loadTool(name){
+  const t = TOOLS[name];
+  toolTitle.textContent = t.title;
+  toolSub.textContent = t.sub;
+  toolStamp.textContent = t.stamp;
+  toolArea.innerHTML = '';
+  RENDERERS[name](toolArea);
+}
+
+const topToolsBtn=document.getElementById('topToolsBtn');
+const topToolsDropdown=document.getElementById('topToolsDropdown');
+const todayPanel=ensureTodayPanel();
+topToolsBtn.addEventListener('click',()=>topToolsDropdown.classList.toggle('show'));
+document.getElementById('todayTasksBtn').addEventListener('click',()=>{topToolsDropdown.classList.remove('show');openTodayTasks();});
+document.getElementById('pdfDataBtn').addEventListener('click',()=>{topToolsDropdown.classList.remove('show');openPdfData();});
+document.getElementById('premiumBtn').addEventListener('click',()=>{topToolsDropdown.classList.remove('show');showPremium();});
+document.getElementById('premiumStatusChip').addEventListener('click',()=>showPremiumValidity());
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.top-tools-menu')) topToolsDropdown.classList.remove('show');
+  if(!e.target.closest('#todayTasksPanel') && !e.target.closest('.top-tools-menu')) todayPanel.classList.remove('show');
+});
+
+function fmtSize(bytes){
+  if(bytes < 1024) return bytes+' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1)+' KB';
+  return (bytes/1024/1024).toFixed(2)+' MB';
+}
+
+function el(html){
+  const d = document.createElement('div');
+  d.innerHTML = html.trim();
+  return d.firstChild;
+}
+
+function statusBox(container){
+  const box = el(`<div class="status"></div>`);
+  container.appendChild(box);
+  return {
+    info(msg){ box.className='status info show'; box.innerHTML = '<span class="spinner" style="border-color:rgba(21,77,58,0.3);border-top-color:#154D3A;"></span>'+msg; },
+    success(msg){ box.className='status success show'; box.textContent = msg; },
+    error(msg){ box.className='status error show'; box.textContent = msg; },
+    clear(){ box.className='status'; box.innerHTML=''; }
+  };
+}
+
+async function saveBlobWithLocation(blob, suggestedName){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=suggestedName;
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Keep URL alive for this page session in case it needs to be downloaded again.
+  window.addEventListener('beforeunload',()=>{ try{URL.revokeObjectURL(url);}catch(e){} },{once:true});
+  return true;
+}
+
+async function resultCard(container, filename, blob){
+  try{
+    const url=URL.createObjectURL(blob);
+    addTodayTask(filename, blob, url);
+    const a=document.createElement('a');
+    a.href=url; a.download=filename; a.style.display='none';
+    document.body.appendChild(a); a.click(); a.remove();
+    return true;
+  }catch(err){
+    const msg=err && err.message ? err.message : String(err);
+    const box=container.querySelector('.status');
+    if(box){ box.className='status error show'; box.textContent='Download failed: '+msg; }
+    return false;
+  }
+}
+
+const TODAY_TASKS_KEY='pdf_editor_today_tasks_v2';
+const TODAY_TASKS_DB='pdf_editor_tasks_db_v1';
+let todayTasks=[];
+function todayKey(){return new Date().toISOString().slice(0,10);}
+function openTaskDB(){return new Promise((resolve,reject)=>{
+  if(!('indexedDB' in window)){resolve(null);return;}
+  const req=indexedDB.open(TODAY_TASKS_DB,1);
+  req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('files'))db.createObjectStore('files',{keyPath:'id'});};
+  req.onsuccess=()=>resolve(req.result); req.onerror=()=>resolve(null);
+});}
+async function idbPut(task){try{const db=await openTaskDB();if(!db)return;await new Promise((res,rej)=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').put(task);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}catch(e){}}
+async function idbGet(id){try{const db=await openTaskDB();if(!db)return null;return await new Promise((res)=>{const tx=db.transaction('files','readonly');const r=tx.objectStore('files').get(id);r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null);});}catch(e){return null;}}
+async function idbDeleteExcept(ids){try{const db=await openTaskDB();if(!db)return;const all=await new Promise(res=>{const tx=db.transaction('files','readonly');const r=tx.objectStore('files').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>res([]);});const keep=new Set(ids);for(const x of all)if(!keep.has(x.id)){await new Promise(res=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').delete(x.id);tx.oncomplete=res;tx.onerror=res;});}}catch(e){}}
+function loadTodayTasks(){
+  try{const raw=localStorage.getItem(TODAY_TASKS_KEY);const data=raw?JSON.parse(raw):null;if(data&&data.date===todayKey())todayTasks=data.tasks||[];else todayTasks=[];}catch(e){todayTasks=[];}
+  // Rehydrate downloadable blobs from IndexedDB after a refresh.
+  Promise.all(todayTasks.map(async t=>{const rec=await idbGet(t.id);if(rec&&rec.blob)t.url=URL.createObjectURL(rec.blob);return t;})).then(()=>renderTodayPanel());
+}
+function saveTodayTasks(){try{localStorage.setItem(TODAY_TASKS_KEY,JSON.stringify({date:todayKey(),tasks:todayTasks.map(t=>({id:t.id,name:t.name,size:t.size,type:t.type,time:t.time}))}));}catch(e){}}
+function addTodayTask(filename,blob,url){
+  const ext=(filename.split('.').pop()||'').toUpperCase();
+  const type=ext==='PDF'?'PDF':(ext==='DOCX'?'Word':(ext==='XLSX'?'Excel':(['PNG','JPG','JPEG'].includes(ext)?'Image':'File')));
+  const id='task_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  const task={id,name:filename,size:blob.size,type,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),url};
+  todayTasks.unshift(task); if(todayTasks.length>50)todayTasks=todayTasks.slice(0,50); saveTodayTasks();
+  idbPut({id,blob,name:filename,date:todayKey()});
+  idbDeleteExcept(todayTasks.map(t=>t.id)); renderTodayPanel();
+}
+function getTaskStats(){const stats={PDF:0,Word:0,Excel:0,Image:0,File:0};todayTasks.forEach(t=>stats[t.type]=(stats[t.type]||0)+1);return stats;}
+function ensureTodayPanel(){let p=document.getElementById('todayTasksPanel');if(p)return p;p=document.createElement('div');p.id='todayTasksPanel';p.className='today-panel';document.body.appendChild(p);return p;}
+function renderTodayPanel(){
+  const p=ensureTodayPanel();const st=getTaskStats();
+  p.innerHTML=`<div class="today-title">Today's Done Tasks</div><div class="today-summary">Completed today: ${todayTasks.length} task${todayTasks.length===1?'':'s'}</div><div class="today-stats"><div class="today-stat"><b>${st.PDF}</b><span>PDF</span></div><div class="today-stat"><b>${st.Word}</b><span>Word</span></div><div class="today-stat"><b>${st.Excel}</b><span>Excel</span></div></div><div id="todayTaskList"></div>`;
+  const list=p.querySelector('#todayTaskList');if(!todayTasks.length){list.innerHTML='<div class="today-empty">No completed tasks today.</div>';return;}
+  todayTasks.forEach(t=>{const row=document.createElement('div');row.className='today-task';const info=document.createElement('div');info.className='today-task-info';info.innerHTML=`<div class="today-task-name" title="${String(t.name).replace(/"/g,'&quot;')}">${String(t.name).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</div><div class="today-task-meta">${t.type} • ${fmtSize(t.size)} • ${t.time}</div>`;row.appendChild(info);const b=document.createElement('button');b.className='today-download';b.textContent='Download';b.onclick=async()=>{if(!t.url){const rec=await idbGet(t.id);if(rec&&rec.blob)t.url=URL.createObjectURL(rec.blob);}if(t.url){const a=document.createElement('a');a.href=t.url;a.download=t.name;document.body.appendChild(a);a.click();a.remove();}};row.appendChild(b);list.appendChild(row);});
+}
+function openTodayTasks(){renderTodayPanel();ensureTodayPanel().classList.add('show');}
+function openPdfData(){const p=ensureTodayPanel();const st=getTaskStats();p.innerHTML=`<div class="today-title">Progress Chart</div><div class="today-summary">Today's activity</div><div class="today-stats"><div class="today-stat"><b>${todayTasks.length}</b><span>Total Tasks</span></div><div class="today-stat"><b>${st.PDF}</b><span>PDF</span></div><div class="today-stat"><b>${st.Word+st.Excel+st.Image}</b><span>Other</span></div></div><div class="today-empty">All completed conversions and created files are listed under <b>Today's Done Tasks</b>.</div>`;p.classList.add('show');}
+const PROMO_API_URL = 'https://script.google.com/macros/s/AKfycbwoqi5uPiKpwaxt7yXwS6OAIjhWyxYubSqtFGzkwRkgy76ALm2BYd_38GxarkNjzTZ-/exec';
+function getPromoDeviceId(){
+  let id=localStorage.getItem('pdfEditorPromoDeviceId');
+  if(!id){ id=(crypto.randomUUID?crypto.randomUUID():'dev-'+Date.now()+'-'+Math.random().toString(36).slice(2)); localStorage.setItem('pdfEditorPromoDeviceId',id); }
+  return id;
+}
+function getStoredPremiumUntil(){ return Number(localStorage.getItem('pdfEditorPremiumUntil')||0); }
+function setStoredPremiumDays(days){
+  const base=Math.max(Date.now(),getStoredPremiumUntil());
+  const until=base + Number(days)*86400000;
+  localStorage.setItem('pdfEditorPremiumUntil',String(until));
+  return until;
+}
+function showPromoCodeModal(){
+  let m=document.getElementById('promoCodeModal');
+  if(!m){
+    m=document.createElement('div'); m.id='promoCodeModal'; m.className='premium-modal';
+    m.innerHTML=`<div class="premium-card promo-card">
+      <span class="premium-badge">PROMO CODE</span>
+      <h2>Redeem Promo Code</h2>
+      <p>Enter your promo code to activate Premium.</p>
+      <input id="promoCodeInput" class="promo-code-input" type="text" autocomplete="off" placeholder="Enter promo code">
+      <div id="promoCodeStatus" class="promo-code-status"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+        <button class="premium-close" id="promoClose" style="margin-top:0;">Close</button>
+        <button class="premium-cta" id="promoApply" type="button">Apply</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    m.querySelector('#promoClose').onclick=()=>m.classList.remove('show');
+    m.querySelector('#promoApply').onclick=redeemPromoCode;
+    m.querySelector('#promoCodeInput').addEventListener('keydown',e=>{if(e.key==='Enter')redeemPromoCode();});
+    m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');});
+  }
+  m.querySelector('#promoCodeInput').value='';
+  m.querySelector('#promoCodeStatus').textContent='';
+  m.classList.add('show');
+  setTimeout(()=>m.querySelector('#promoCodeInput').focus(),50);
+}
+async function redeemPromoCode(){
+  const m=document.getElementById('promoCodeModal');
+  const input=m.querySelector('#promoCodeInput');
+  const status=m.querySelector('#promoCodeStatus');
+  const btn=m.querySelector('#promoApply');
+  const code=input.value.trim();
+  if(!code){status.className='promo-code-status error';status.textContent='Please enter a promo code.';return;}
+  btn.disabled=true; status.className='promo-code-status'; status.textContent='Checking promo code...';
+  try{
+    const params=new URLSearchParams({action:'redeem',promo:code,code:code,deviceId:getPromoDeviceId()});
+    const r=await fetch(PROMO_API_URL+'?'+params.toString(),{method:'GET',cache:'no-store'});
+    const raw=await r.text();
+    let data={}; try{data=JSON.parse(raw);}catch(e){throw new Error('Invalid response from promo service.');}
+    const ok=data.ok===true || data.success===true || data.valid===true;
+    const rawDays=data.days ?? data.premiumDays ?? data.premium_days ?? 0;
+    const days=Number(rawDays);
+    if(!ok || !rawDays || (Number.isNaN(days) && !String(rawDays).trim())){ throw new Error(data.message || data.error || 'Invalid, expired, or already-used promo code.'); }
+    const until = Number.isFinite(days) && days > 0 ? setStoredPremiumDays(days) : null;
+    status.className='promo-code-status success';
+    status.textContent=`Success! Promo Code applied successfully${Number.isFinite(days) && days > 0 ? ` for ${days} day${days===1?'':'s'}` : ''}.`;
+    input.value='';
+    setTimeout(()=>{
+      m.classList.remove('show');
+      showPromoSuccessPopup();
+    },800);
+  }catch(err){
+    status.className='promo-code-status error';
+    status.textContent=err.message || 'Unable to verify promo code.';
+  }finally{btn.disabled=false;}
+}
+function formatPremiumDate(timestamp){
+  const d=new Date(timestamp);
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const yyyy=d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+function showPremiumValidity(){
+  let m=document.getElementById('premiumValidityModal');
+  if(!m){
+    m=document.createElement('div'); m.id='premiumValidityModal'; m.className='premium-modal';
+    m.innerHTML=`<div class="premium-card" style="text-align:center;max-width:430px;">
+      <div style="font-size:46px;color:#e3262e;line-height:1;animation:premiumHeartBeat 1.25s ease-in-out infinite;">♥</div>
+      <span class="premium-badge" style="margin-top:12px;">PREMIUM</span>
+      <h2>Your Premium Version</h2>
+      <p style="font-size:15px;">Your Premium version is valid till <b id="premiumValidDate">--</b>.</p>
+      <button class="premium-close" id="premiumValidityClose">Close</button>
+    </div>`;
+    document.body.appendChild(m);
+    m.querySelector('#premiumValidityClose').onclick=()=>m.classList.remove('show');
+    m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');});
+  }
+  let until=getStoredPremiumUntil();
+  if(!until){
+    // Current built-in Premium period: valid through 31-12-2026.
+    until=new Date(2026,11,31,23,59,59,999).getTime();
+  }
+  m.querySelector('#premiumValidDate').textContent=formatPremiumDate(until);
+  m.classList.add('show');
+}
+
+function showPremium(){
+  let m=document.getElementById('premiumModal');
+  if(!m){
+    m=document.createElement('div'); m.id='premiumModal'; m.className='premium-modal';
+    m.innerHTML=`<div class="premium-card" id="premiumCard">
+      <span class="premium-badge">PREMIUM</span>
+      <h2>You are already on Premium</h2>
+      <p><b>Premium Valid till 2027</b></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+        <button class="premium-close" id="premiumClose" style="margin-top:0;">Close</button>
+        <button class="premium-cta" id="promoOpen" type="button">🎟 Promo Code</button>
+        <button class="premium-cta" id="testFutureAd" type="button">▶ Watch ad</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    m.querySelector('#premiumClose').onclick=()=>m.classList.remove('show');
+    m.querySelector('#promoOpen').onclick=()=>{m.classList.remove('show');showPromoCodeModal();};
+    m.querySelector('#testFutureAd').onclick=()=>{m.classList.remove('show');showFutureWebsiteOption(true);};
+    m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');});
+  }
+  m.classList.add('show');
+}
+
+async function recordWatchedAdCredit(){
+  const deviceId=getPromoDeviceId();
+  const params=new URLSearchParams({action:'watchad',deviceId:deviceId});
+  try{
+    const r=await fetch(PROMO_API_URL+'?'+params.toString(),{method:'GET',cache:'no-store'});
+    const raw=await r.text();
+    let data={};
+    try{data=JSON.parse(raw);}catch(e){throw new Error('Invalid response from Watch Ad service.');}
+    if(data.ok!==true){throw new Error(data.message || 'Watch Ad credit could not be recorded.');}
+    return data;
+  }catch(err){
+    console.error('Watch Ad credit error:',err);
+    throw err;
+  }
+}
+
+/* ---------------- PROMO CODE + FUTURE DAILY LIMIT / WATCH AD ---------------- */
+
+function showFutureWebsiteOption(isTest=false){
+  let m=document.getElementById('futureWebsiteModal');
+  if(!m){
+    m=document.createElement('div');
+    m.id='futureWebsiteModal';
+    m.className='premium-modal';
+    m.innerHTML=`<div class="premium-card future-ad-card">
+      <span class="premium-badge" id="futureWebsiteBadge">WATCH AD</span>
+      <h2 id="futureWebsiteTitle">Website Preview</h2>
+      <div class="watch-ad-scene">
+        <div class="watch-orb orb-a"></div><div class="watch-orb orb-b"></div><div class="watch-orb orb-c"></div>
+        <div class="watch-shape shape-ring"></div><div class="watch-shape shape-diamond">◆</div>
+        <div class="watch-heart heart-a">♥</div><div class="watch-heart heart-b">♥</div>
+        <div class="watch-megaphone">📣</div>
+        <div class="watch-ad-kicker">STAY CONNECTED WITH</div>
+        <div class="watch-ad-site"><span class="watch-site-prefix">www.</span><span class="watch-site-main">jaseem</span><span class="watch-site-dot">.</span><span class="watch-site-main">store</span></div>
+        <div class="watch-platform"><span class="platform-star">★</span><div class="watch-ad-message">If in the future the website is not found, please contact us on <b>WhatsApp</b> to receive the new website link.</div><a class="watch-ad-whatsapp" href="https://wa.me/923154400102" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">◉ WhatsApp: 03154400102</a></div>
+        <div class="watch-ad-spark spark-a">✦</div><div class="watch-ad-spark spark-b">✦</div>
+      </div>
+      <div class="watch-ad-countdown-wrap"><div id="futureAdTimer" class="watch-ad-timer">30 seconds remaining</div><div class="watch-ad-progress"><div id="futureAdProgress" class="watch-ad-progress-fill"></div></div></div>
+      <div class="watch-ad-actions">
+        <button class="premium-close" id="futureAdClose" disabled style="opacity:.55;cursor:not-allowed;">Please wait...</button>
+        <button class="watch-ad-skip" id="futureAdSkip" type="button">Skip Ad</button>
+      </div>
+      <div class="watch-ad-skip-confirm" id="watchAdSkipConfirm" aria-hidden="true">
+        <div class="watch-ad-skip-card">
+          <div class="watch-ad-skip-title">Skip this ad?</div>
+          <div class="watch-ad-skip-text">If you skip the ad, you will not receive the free task for this session. You can continue watching the ad to unlock your free task.</div>
+          <div class="watch-ad-skip-buttons">
+            <button type="button" id="watchAdKeepWatching">Keep Watching</button>
+            <button type="button" id="watchAdConfirmSkip">Skip Ad</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+  }
+  const badge=m.querySelector('#futureWebsiteBadge');
+  const title=m.querySelector('#futureWebsiteTitle');
+  if(badge) badge.textContent=isTest?'WATCH AD':'CONTINUE';
+  if(title) title.textContent=isTest?'Website Preview':'Continue with 30-Second Website';
+  m.classList.add('show');
+  const timer=m.querySelector('#futureAdTimer');
+  const close=m.querySelector('#futureAdClose');
+  const skip=m.querySelector('#futureAdSkip');
+  const skipConfirm=m.querySelector('#watchAdSkipConfirm');
+  const keepWatching=m.querySelector('#watchAdKeepWatching');
+  const confirmSkip=m.querySelector('#watchAdConfirmSkip');
+  if(skipConfirm) skipConfirm.classList.remove('show');
+  if(skipConfirm) skipConfirm.setAttribute('aria-hidden','true');
+  if(skip) skip.onclick=(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(skipConfirm){
+      skipConfirm.classList.add('show');
+      skipConfirm.setAttribute('aria-hidden','false');
+    }
+  };
+  if(keepWatching) keepWatching.onclick=(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(skipConfirm){
+      skipConfirm.classList.remove('show');
+      skipConfirm.setAttribute('aria-hidden','true');
+    }
+  };
+  if(confirmSkip) confirmSkip.onclick=async (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Record the confirmed skip in WatchAd -> SkipAd.
+    // A skip never increments AdsWatched and never gives a free task.
+    const deviceId=getPromoDeviceId();
+    const params=new URLSearchParams({action:'skipad',deviceId:deviceId});
+
+    cleanupWatchAdTimer();
+
+    if(skipConfirm){
+      skipConfirm.classList.remove('show');
+      skipConfirm.setAttribute('aria-hidden','true');
+    }
+
+    // Close the ad immediately; save the skip in the background.
+    m.classList.remove('show');
+
+    try{
+      const r=await fetch(PROMO_API_URL+'?'+params.toString(),{
+        method:'GET',
+        cache:'no-store'
+      });
+      const raw=await r.text();
+      let data={};
+      try{data=JSON.parse(raw);}catch(err){
+        throw new Error('Invalid response from Skip Ad service.');
+      }
+      if(data.ok!==true){
+        throw new Error(data.message || 'Skip Ad could not be recorded.');
+      }
+      console.log('Skip Ad recorded:',data);
+    }catch(err){
+      console.error('Skip Ad record error:',err);
+    }
+  };
+  close.disabled=true; close.style.opacity='.55'; close.style.cursor='not-allowed'; close.textContent='Please wait...';
+
+  /*
+   * WATCH AD TIMER
+   * ---------------------------------------------------------
+   * The 30-second countdown only advances while this window
+   * is visible AND focused.
+   *
+   * If the user switches to another tab/window/application,
+   * the timer pauses. When the user comes back, it resumes
+   * from exactly where it stopped.
+   *
+   * 28 actual active seconds:
+   *   - Skip Ad is hidden.
+   *   - 28-second event is fired silently.
+   *
+   * 30 actual active seconds:
+   *   - AdsWatched is recorded through the API.
+   */
+
+  let left=30;
+  let elapsedActive=0;
+  let lastTick=performance.now();
+  let hiddenSaveStarted=false;
+  let skipHidden=false;
+  let adFinished=false;
+
+  timer.textContent=`${left} seconds remaining`;
+
+  const progress=m.querySelector('#futureAdProgress');
+  if(progress) progress.style.width='0%';
+
+  function isWatchAdActive(){
+    return m.classList.contains('show') &&
+           document.visibilityState === 'visible' &&
+           document.hasFocus();
+  }
+
+  function pauseWatchAdClock(){
+    lastTick=performance.now();
+  }
+
+  function cleanupWatchAdTimer(){
+    clearInterval(m._timer);
+    m._timer=null;
+    document.removeEventListener('visibilitychange', pauseWatchAdClock);
+    window.removeEventListener('focus', pauseWatchAdClock);
+    window.removeEventListener('blur', pauseWatchAdClock);
+  }
+
+  function handleWatchAdTick(){
+    const now=performance.now();
+
+    // Not visible/focused = completely paused.
+    if(!isWatchAdActive()){
+      lastTick=now;
+      return;
+    }
+
+    const delta=now-lastTick;
+    lastTick=now;
+
+    // Add only the time during which the ad window was active.
+    elapsedActive += delta;
+
+    const newLeft=Math.max(
+      0,
+      30-Math.floor(elapsedActive/1000)
+    );
+
+    if(newLeft === left && left > 0){
+      return;
+    }
+
+    left=newLeft;
+
+    if(left > 0){
+      timer.textContent=`${left} seconds remaining`;
+    }else{
+      timer.textContent='Ad completed';
+    }
+
+    if(progress){
+      progress.style.width=((30-left)/30*100)+'%';
+    }
+
+    /* -------------------------------------------------------
+       28 ACTIVE SECONDS
+       Hide Skip Ad + fire silent event.
+    ------------------------------------------------------- */
+    if(left<=2 && !skipHidden){
+      skipHidden=true;
+      hiddenSaveStarted=true;
+
+      if(skip){
+        skip.style.display='none';
+        skip.setAttribute('aria-hidden','true');
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('watchad:28s')
+      );
+    }
+
+    /* -------------------------------------------------------
+       30 ACTIVE SECONDS
+       Record AdsWatched.
+    ------------------------------------------------------- */
+    if(left<=0 && !adFinished){
+      adFinished=true;
+      cleanupWatchAdTimer();
+
+      close.disabled=true;
+      close.style.opacity='.75';
+      close.style.cursor='wait';
+      close.textContent='Please wait...';
+
+      (async()=>{
+        try{
+          const data=await recordWatchedAdCredit();
+
+          timer.textContent=
+            'Ad completed — free task credited';
+
+          close.disabled=false;
+          close.style.opacity='1';
+          close.style.cursor='pointer';
+          close.textContent='Continue';
+          close.title=data.creditAdded
+            ? '1 free task credited'
+            : 'You already had 1 unused free task';
+
+        }catch(err){
+          timer.textContent=
+            'Could not save your free task';
+
+          close.disabled=false;
+          close.style.opacity='1';
+          close.style.cursor='pointer';
+          close.textContent='Close';
+
+          close.onclick=()=>{
+            cleanupWatchAdTimer();
+            m.classList.remove('show');
+          };
+
+          alert(
+            'The ad finished, but the free task could not be saved. Please check your internet connection and try again.'
+          );
+        }
+      })();
+    }
+  }
+
+  /*
+   * Reset the clock reference whenever the browser window/tab
+   * changes visibility or focus. Time spent outside is therefore
+   * never added to the 30-second watch time.
+   */
+  document.addEventListener(
+    'visibilitychange',
+    pauseWatchAdClock
+  );
+
+  window.addEventListener(
+    'focus',
+    pauseWatchAdClock
+  );
+
+  window.addEventListener(
+    'blur',
+    pauseWatchAdClock
+  );
+
+  clearInterval(m._timer);
+  m._timer=setInterval(
+    handleWatchAdTick,
+    100
+  );
+
+  /* ---------------------------------------------------------
+     CLOSE / CONTINUE
+  --------------------------------------------------------- */
+  close.onclick=()=>{
+    if(!close.disabled){
+      cleanupWatchAdTimer();
+      m.classList.remove('show');
+    }
+  };
+
+}
+
+loadTodayTasks();
+
+function makeDropzone({multiple, accept, hintText}){
+  const zone = el(`
+    <div class="dropzone" tabindex="0">
+      <div class="dz-icon">&#128194;</div>
+      <div class="dz-text">Drag files here or click to browse</div>
+      <div class="dz-hint">${hintText || ''}</div>
+      <input type="file" ${multiple?'multiple':''} accept="${accept||''}">
+    </div>
+  `);
+  const input = zone.querySelector('input');
+  zone.addEventListener('click', ()=> input.click());
+  zone.addEventListener('keydown', e=>{ if(e.key==='Enter') input.click(); });
+  ['dragenter','dragover'].forEach(ev=> zone.addEventListener(ev, e=>{ e.preventDefault(); zone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev=> zone.addEventListener(ev, e=>{ e.preventDefault(); zone.classList.remove('drag'); }));
+  return { zone, input };
+}
+
+function fileRow(file, onRemove){
+  const row = el(`
+    <div class="file-row">
+      <span class="drag-handle">&#8942;&#8942;</span>
+      <span class="fname">${file.name}</span>
+      <span class="fsize">${fmtSize(file.size)}</span>
+      <button class="rm" title="Remove">&#10005;</button>
+    </div>
+  `);
+  row.querySelector('.rm').addEventListener('click', onRemove);
+  return row;
+}
+
+async function readAsArrayBuffer(file){
+  return await file.arrayBuffer();
+}
+
+/* ---------------- MERGE ---------------- */
+function renderMerge(container){
+  let files = [];
+  const { zone, input } = makeDropzone({multiple:true, accept:'.pdf', hintText:'PDF files only — select at least 2 files'});
+  container.appendChild(zone);
+  const list = el(`<div class="filelist"></div>`);
+  container.appendChild(list);
+
+  function refreshList(){
+    list.innerHTML='';
+    files.forEach((f,idx)=>{
+      const row = fileRow(f, ()=>{ files.splice(idx,1); refreshList(); });
+      list.appendChild(row);
+    });
+    btn.disabled = files.length < 2;
+  }
+  function addFiles(fl){
+    [...fl].forEach(f=>{ if(f.type==='application/pdf' || f.name.toLowerCase().endsWith('.pdf')) files.push(f); });
+    refreshList();
+  }
+  input.addEventListener('change', e=> addFiles(e.target.files));
+  zone.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
+
+  const controls = el(`<div class="controls-row"></div>`);
+  const btn = el(`<button class="btn btn-primary" disabled>Merge PDFs</button>`);
+  controls.appendChild(btn);
+  container.appendChild(controls);
+  const status = statusBox(container);
+
+  btn.addEventListener('click', async ()=>{
+    status.info('Merging PDFs...');
+    try{
+      const merged = await PDFDocument.create();
+      for(const f of files){
+        const bytes = await readAsArrayBuffer(f);
+        const src = await PDFDocument.load(bytes);
+        const pages = await merged.copyPages(src, src.getPageIndices());
+        pages.forEach(p=> merged.addPage(p));
+      }
+      const outBytes = await merged.save();
+      const blob = new Blob([outBytes], {type:'application/pdf'});
+      status.success('Done! ' + files.length + ' files have been merged.');
+      resultCard(container, 'merged.pdf', blob);
+    }catch(err){
+      status.error('Error: ' + err.message);
+    }
+  });
+}
+
+/* ---------------- SPLIT / EXTRACT ---------------- */
+function renderSplit(container){
+  let file = null;
+  const { zone, input } = makeDropzone({multiple:false, accept:'.pdf', hintText:'Select a PDF file'});
+  container.appendChild(zone);
+  const info = el(`<div class="filelist"></div>`);
+  container.appendChild(info);
+
+  const controls = el(`
+    <div class="controls-row">
+      <div>
+        <label class="field-label">Pages (e.g. 1-3,5,8)</label>
+        <input type="text" id="rangeInput" placeholder="Leave blank to select all pages">
+      </div>
+      <div>
+        <label class="field-label">Mode</label>
+        <select id="modeSelect">
+          <option value="single">One PDF file (selected pages)</option>
+          <option value="zip">Separate file for each page (ZIP)</option>
+        </select>
+      </div>
+    </div>
+  `);
+  container.appendChild(controls);
+  const btn = el(`<button class="btn btn-primary" disabled style="margin-top:12px;">Extract</button>`);
+  container.appendChild(btn);
+  const status = statusBox(container);
+
+  async function handleFile(f){
+    file = f;
+    info.innerHTML='';
+    info.appendChild(fileRow(f, ()=>{ file=null; info.innerHTML=''; btn.disabled=true; }));
+    btn.disabled = false;
+  }
+  input.addEventListener('change', e=> e.target.files[0] && handleFile(e.target.files[0]));
+  zone.addEventListener('drop', e=> e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]));
+
+  function parseRanges(str, max){
+    if(!str.trim()) return Array.from({length:max}, (_,i)=>i);
+    const out = [];
+    str.split(',').forEach(part=>{
+      part = part.trim();
+      if(part.includes('-')){
+        const [a,b] = part.split('-').map(n=>parseInt(n.trim(),10));
+        for(let i=a;i<=b;i++) out.push(i-1);
+      } else if(part){
+        out.push(parseInt(part,10)-1);
+      }
+    });
+    return out.filter(i=> i>=0 && i<max);
+  }
+
+  btn.addEventListener('click', async ()=>{
+    if(!file) return;
+    status.info('Extracting pages...');
+    try{
+      const bytes = await readAsArrayBuffer(file);
+      const src = await PDFDocument.load(bytes);
+      const total = src.getPageCount();
+      const idxs = parseRanges(document.getElementById('rangeInput').value, total);
+      if(idxs.length===0){ status.error('No valid page numbers were found.'); return; }
+      const mode = document.getElementById('modeSelect').value;
+
+      if(mode==='single'){
+        const out = await PDFDocument.create();
+        const pages = await out.copyPages(src, idxs);
+        pages.forEach(p=> out.addPage(p));
+        const outBytes = await out.save();
+        resultCard(container, 'extracted.pdf', new Blob([outBytes], {type:'application/pdf'}));
+      } else {
+        const zip = new JSZip();
+        for(const i of idxs){
+          const out = await PDFDocument.create();
+          const [p] = await out.copyPages(src, [i]);
+          out.addPage(p);
+          const outBytes = await out.save();
+          zip.file(`page-${i+1}.pdf`, outBytes);
+        }
+        const zipBlob = await zip.generateAsync({type:'blob'});
+        resultCard(container, 'pages.zip', zipBlob);
+      }
+      status.success('Mukammal! ' + idxs.length + ' page(s) processed.');
+    }catch(err){ status.error('Error: ' + err.message); }
+  });
+}
+
+/* ---------------- INSERT PAGE ---------------- */
+function renderInsert(container){
+  let baseFile=null, insertFile=null;
+  const wrap = el(`<div></div>`);
+  container.appendChild(wrap);
+
+  wrap.appendChild(el(`<label class="field-label">Original PDF</label>`));
+  const dz1 = makeDropzone({multiple:false, accept:'.pdf', hintText:'PDF to insert pages into'});
+  wrap.appendChild(dz1.zone);
+  const info1 = el(`<div class="filelist"></div>`); wrap.appendChild(info1);
+
+  wrap.appendChild(el(`<label class="field-label" style="margin-top:16px;">Pages to insert</label>`));
+  const srcModeRow = el(`
+    <div class="controls-row" style="margin-top:0;">
+      <select id="insertMode">
+        <option value="blank">Blank page</option>
+        <option value="pdf">Pages from another PDF</option>
+      </select>
+    </div>
+  `);
+  wrap.appendChild(srcModeRow);
+
+  const dz2Holder = el(`<div style="margin-top:10px;"></div>`);
+  wrap.appendChild(dz2Holder);
+  const dz2 = makeDropzone({multiple:false, accept:'.pdf', hintText:'PDF containing the pages to insert'});
+  const info2 = el(`<div class="filelist"></div>`);
+
+  const pageSelectWrap = el(`
+    <div style="margin-top:12px;display:none;">
+      <label class="field-label">Pages from second PDF</label>
+      <input type="text" id="insertPageRanges" placeholder="Example: 3-5,8" style="width:100%;">
+      <div class="muted" style="margin-top:5px;">Use page numbers separated by commas. Ranges are supported, e.g. 3-5,8,10-12.</div>
+    </div>
+  `);
+  wrap.appendChild(pageSelectWrap);
+
+  srcModeRow.querySelector('select').addEventListener('change', e=>{
+    dz2Holder.innerHTML='';
+    pageSelectWrap.style.display='none';
+    if(e.target.value==='pdf'){
+      dz2Holder.appendChild(dz2.zone);
+      dz2Holder.appendChild(info2);
+      pageSelectWrap.style.display='block';
+    }
+    checkReady();
+  });
+
+  const controls = el(`
+    <div class="controls-row">
+      <div>
+        <label class="field-label">Insert after page number</label>
+        <input type="number" id="posInput" min="0" value="0" style="width:120px;">
+        <div class="muted" style="margin-top:5px;">0 = beginning, 5 = after page 5</div>
+      </div>
+    </div>
+  `);
+  wrap.appendChild(controls);
+
+  const btn = el(`<button class="btn btn-primary" disabled style="margin-top:12px;">Insert Pages</button>`);
+  wrap.appendChild(btn);
+  const status = statusBox(wrap);
+
+  function checkReady(){
+    const mode = srcModeRow.querySelector('select').value;
+    const ranges = (pageSelectWrap.querySelector('#insertPageRanges')?.value || '').trim();
+    btn.disabled = !(baseFile && (mode==='blank' || (insertFile && ranges)));
+  }
+
+  function parsePageRanges(text, totalPages){
+    const pages=[];
+    const seen=new Set();
+    String(text||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(part=>{
+      if(/^\d+$/.test(part)){
+        const n=parseInt(part,10);
+        if(n>=1 && n<=totalPages && !seen.has(n)){ seen.add(n); pages.push(n-1); }
+        return;
+      }
+      const m=part.match(/^(\d+)\s*-\s*(\d+)$/);
+      if(m){
+        let a=parseInt(m[1],10), b=parseInt(m[2],10);
+        if(a>b){ const t=a; a=b; b=t; }
+        a=Math.max(1,a); b=Math.min(totalPages,b);
+        for(let n=a;n<=b;n++) if(!seen.has(n)){ seen.add(n); pages.push(n-1); }
+      }
+    });
+    return pages;
+  }
+
+  dz1.input.addEventListener('change', e=>{ if(e.target.files[0]){ baseFile=e.target.files[0]; info1.innerHTML=''; info1.appendChild(fileRow(baseFile, ()=>{baseFile=null; info1.innerHTML=''; checkReady();})); checkReady(); }});
+  dz1.zone.addEventListener('drop', e=>{ if(e.dataTransfer.files[0]){ baseFile=e.dataTransfer.files[0]; info1.innerHTML=''; info1.appendChild(fileRow(baseFile, ()=>{baseFile=null; info1.innerHTML=''; checkReady();})); checkReady(); }});
+  dz2.input.addEventListener('change', e=>{ if(e.target.files[0]){ insertFile=e.target.files[0]; info2.innerHTML=''; info2.appendChild(fileRow(insertFile, ()=>{insertFile=null; info2.innerHTML=''; checkReady();})); checkReady(); }});
+  dz2.zone.addEventListener('drop', e=>{ if(e.dataTransfer.files[0]){ insertFile=e.dataTransfer.files[0]; info2.innerHTML=''; info2.appendChild(fileRow(insertFile, ()=>{insertFile=null; info2.innerHTML=''; checkReady();})); checkReady(); }});
+  pageSelectWrap.querySelector('#insertPageRanges').addEventListener('input', checkReady);
+
+  btn.addEventListener('click', async ()=>{
+    status.info('Inserting selected page(s)...');
+    try{
+      const baseBytes = await readAsArrayBuffer(baseFile);
+      const base = await PDFDocument.load(baseBytes);
+      let pos = Math.max(0, Math.min(base.getPageCount(), parseInt(document.getElementById('posInput').value,10) || 0));
+      const mode = srcModeRow.querySelector('select').value;
+
+      if(mode==='blank'){
+        const count = 1;
+        const [w,h] = base.getPageCount() ? base.getPage(0).getSize() : [595,842];
+        for(let i=0;i<count;i++) base.insertPage(pos+i, [w,h]);
+      } else {
+        const insBytes = await readAsArrayBuffer(insertFile);
+        const insSrc = await PDFDocument.load(insBytes);
+        const rangesText = pageSelectWrap.querySelector('#insertPageRanges').value.trim();
+        const indices = parsePageRanges(rangesText, insSrc.getPageCount());
+        if(!indices.length) throw new Error('No valid pages were selected. Use a format such as 3-5,8.');
+
+        // Build a new PDF in the exact requested order. PDFPage objects copied
+        // from another document cannot be passed to insertPage(); they must be
+        // copied into the destination document in sequence.
+        const out = await PDFDocument.create();
+        const before = Array.from({length: pos}, (_,i)=>i);
+        const after = Array.from({length: base.getPageCount()-pos}, (_,i)=>pos+i);
+
+        if(before.length){
+          const pages = await out.copyPages(base, before);
+          pages.forEach(p=>out.addPage(p));
+        }
+        {
+          const pages = await out.copyPages(insSrc, indices);
+          pages.forEach(p=>out.addPage(p));
+        }
+        if(after.length){
+          const pages = await out.copyPages(base, after);
+          pages.forEach(p=>out.addPage(p));
+        }
+
+        const outBytes = await out.save();
+        resultCard(wrap, 'inserted.pdf', new Blob([outBytes], {type:'application/pdf'}));
+        status.success('Selected page(s) inserted successfully.');
+        return;
+      }
+
+      const outBytes = await base.save();
+      resultCard(wrap, 'inserted.pdf', new Blob([outBytes], {type:'application/pdf'}));
+      status.success('Selected page(s) inserted successfully.');
+    }catch(err){ status.error('Error: ' + err.message); }
+  });
+  checkReady();
+}
+/* ---------------- PDF READER ---------------- */
+function renderReader(container){
+  let pdfDoc=null, pageNum=1, scale=1.2;
+  const { zone, input } = makeDropzone({multiple:false, accept:'.pdf', hintText:'Select a PDF to read'});
+  container.appendChild(zone);
+
+  const toolbar = el(`
+    <div class="reader-toolbar" style="display:none;">
+      <button class="btn btn-ghost" id="prevPage">&larr; Prev</button>
+      <span id="pageIndicator" style="font-family:'IBM Plex Mono',monospace;font-size:13px;"></span>
+      <button class="btn btn-ghost" id="nextPage">Next &rarr;</button>
+      <button class="btn btn-ghost" id="zoomOut">&minus;</button>
+      <button class="btn btn-ghost" id="zoomIn">&plus;</button>
+    </div>
+  `);
+  container.appendChild(toolbar);
+  const canvasWrap = el(`<div class="reader-canvas-wrap" style="display:none;"><canvas id="readerCanvas"></canvas></div>`);
+  container.appendChild(canvasWrap);
+  const status = statusBox(container);
+
+  async function loadPdf(file){
+    status.info('Loading PDF...');
+    const bytes = await readAsArrayBuffer(file);
+    pdfDoc = await pdfjsLib.getDocument({data: bytes}).promise;
+    pageNum = 1;
+    toolbar.style.display='flex';
+    canvasWrap.style.display='flex';
+    status.clear();
+    renderPage();
+  }
+  async function renderPage(){
+    const page = await pdfDoc.getPage(pageNum);
+    const viewport = page.getViewport({scale});
+    const canvas = document.getElementById('readerCanvas');
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({canvasContext: ctx, viewport}).promise;
+    document.getElementById('pageIndicator').textContent = `Page ${pageNum} / ${pdfDoc.numPages}`;
+  }
+  input.addEventListener('change', e=> e.target.files[0] && loadPdf(e.target.files[0]));
+  zone.addEventListener('drop', e=> e.dataTransfer.files[0] && loadPdf(e.dataTransfer.files[0]));
+  toolbar.querySelector('#prevPage').addEventListener('click', ()=>{ if(pageNum>1){ pageNum--; renderPage(); }});
+  toolbar.querySelector('#nextPage').addEventListener('click', ()=>{ if(pageNum<pdfDoc.numPages){ pageNum++; renderPage(); }});
+  toolbar.querySelector('#zoomIn').addEventListener('click', ()=>{ scale=Math.min(3,scale+0.2); renderPage(); });
+  toolbar.querySelector('#zoomOut').addEventListener('click', ()=>{ scale=Math.max(0.4,scale-0.2); renderPage(); });
+}
+
+/* ---------------- IMG -> PDF ---------------- */
+function renderImg2Pdf(container){
+  let files = [];
+  const { zone, input } = makeDropzone({multiple:true, accept:'.jpg,.jpeg,.png', hintText:'One or more JPG/PNG images'});
+  container.appendChild(zone);
+  const list = el(`<div class="filelist"></div>`);
+  container.appendChild(list);
+  const btn = el(`<button class="btn btn-primary" disabled style="margin-top:12px;">Convert to PDF</button>`);
+  container.appendChild(btn);
+  const status = statusBox(container);
+
+  function refresh(){
+    list.innerHTML='';
+    files.forEach((f,idx)=> list.appendChild(fileRow(f, ()=>{ files.splice(idx,1); refresh(); })));
+    btn.disabled = files.length===0;
+  }
+  function addFiles(fl){
+    [...fl].forEach(f=>{ if(/image\/(jpe?g|png)/.test(f.type)) files.push(f); });
+    refresh();
+  }
+  input.addEventListener('change', e=> addFiles(e.target.files));
+  zone.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
+
+  btn.addEventListener('click', async ()=>{
+    status.info('Creating PDF from images...');
+    try{
+      const pdfDoc = await PDFDocument.create();
+      for(const f of files){
+        const bytes = await readAsArrayBuffer(f);
+        let img;
+        if(/png/.test(f.type)) img = await pdfDoc.embedPng(bytes);
+        else img = await pdfDoc.embedJpg(bytes);
+        const page = pdfDoc.addPage([img.width, img.height]);
+        page.drawImage(img, {x:0, y:0, width:img.width, height:img.height});
+      }
+      const outBytes = await pdfDoc.save();
+      resultCard(container, 'images.pdf', new Blob([outBytes], {type:'application/pdf'}));
+      status.success('PDF created successfully!');
+    }catch(err){ status.error('Error: ' + err.message); }
+  });
+}
+
+/* ---------------- PDF -> IMG ---------------- */
+function renderPdf2Img(container){
+  let file=null;
+  const { zone, input } = makeDropzone({multiple:false, accept:'.pdf', hintText:'Select a PDF to convert to JPG'});
+  container.appendChild(zone);
+  const info = el(`<div class="filelist"></div>`); container.appendChild(info);
+  const btn = el(`<button class="btn btn-primary" disabled style="margin-top:12px;">Convert to JPG</button>`);
+  container.appendChild(btn);
+  const status = statusBox(container);
+
+  input.addEventListener('change', e=> handle(e.target.files[0]));
+  zone.addEventListener('drop', e=> handle(e.dataTransfer.files[0]));
+  function handle(f){ if(!f) return; file=f; info.innerHTML=''; info.appendChild(fileRow(f, ()=>{file=null; info.innerHTML=''; btn.disabled=true;})); btn.disabled=false; }
+
+  btn.addEventListener('click', async ()=>{
+    status.info('Rendering pages as images...');
+    try{
+      const bytes = await readAsArrayBuffer(file);
+      const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+      const zip = new JSZip();
+      for(let i=1;i<=pdf.numPages;i++){
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({scale:2});
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width; canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({canvasContext: ctx, viewport}).promise;
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        zip.file(`page-${i}.jpg`, dataUrl.split(',')[1], {base64:true});
+        status.info(`Processing page ${i} / ${pdf.numPages}...`);
+      }
+      const zipBlob = await zip.generateAsync({type:'blob'});
+      resultCard(container, 'pdf-images.zip', zipBlob);
+      status.success('Done! All pages have been converted to JPG.');
+    }catch(err){ status.error('Error: ' + err.message); }
+  });
+}
+
+/* ---------------- PDF -> WORD (editable DOCX with layout-aware structure) ---------------- */
+function xmlEsc(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+function wordTextRun(text, opts={}){
+  const rtl = /[\u0600-\u06FF]/.test(text);
+  const bold = opts.bold ? '<w:b/><w:bCs/>' : '';
+  const size = opts.size || 20;
+  const color = opts.color ? `<w:color w:val="${opts.color}"/>` : '';
+  const font = opts.font || 'Arial';
+  const jc = opts.jc || '';
+  return `<w:r><w:rPr>${bold}${color}<w:sz w:val="${size}"/><w:szCs w:val="${size}"/><w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}"/>${rtl?'<w:rtl/>':''}</w:rPr><w:t xml:space="preserve">${xmlEsc(text)}</w:t></w:r>`;
+}
+function wordPara(text='', opts={}){
+  const align = opts.align || 'left';
+  const before = opts.before ?? 0, after = opts.after ?? 0, line = opts.line || 240;
+  const shading = opts.shading ? `<w:shd w:fill="${opts.shading}"/>` : '';
+  const jc = `<w:jc w:val="${align}"/>`;
+  const ppr = `<w:pPr>${jc}<w:spacing w:before="${before}" w:after="${after}" w:line="${line}" w:lineRule="auto"/>${shading}${opts.keepNext?'<w:keepNext/>':''}</w:pPr>`;
+  const run = wordTextRun(text, opts);
+  return `<w:p>${ppr}${run}</w:p>`;
+}
+function wordFieldRun(instr){
+  return `<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> ${instr} </w:instrText></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>`;
+}
+function footerPagePara(){
+  return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr>`+
+    wordTextRun('Page No: ',{bold:true,size:18})+
+    wordFieldRun('PAGE')+
+    wordTextRun(' / ',{bold:true,size:18})+
+    wordFieldRun('NUMPAGES')+
+    `</w:p>`;
+}
+function makeCell(text, opts={}){
+  const fill = opts.fill ? `<w:shd w:fill="${opts.fill}"/>` : '';
+  const color = opts.color || (opts.fill ? 'FFFFFF' : '111111');
+  const bold = opts.bold !== false;
+  const align = opts.align || 'center';
+  const width = opts.width ? `<w:tcW w:w="${opts.width}" w:type="dxa"/>` : '';
+  const margins = `<w:tcMar><w:top w:w="55" w:type="dxa"/><w:left w:w="65" w:type="dxa"/><w:bottom w:w="55" w:type="dxa"/><w:right w:w="65" w:type="dxa"/></w:tcMar>`;
+  return `<w:tc><w:tcPr>${width}${fill}${margins}<w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:jc w:val="${align}"/><w:spacing w:before="0" w:after="0"/></w:pPr>${wordTextRun(text,{bold,size:opts.size||18,color,font:opts.font||'Arial'})}</w:p></w:tc>`;
+}
+function makeTable(rows, opts={}){
+  if(!rows || !rows.length) return '';
+  const cols = Math.max(...rows.map(r=>r.length));
+  const totalW = opts.width || 10300;
+  const colW = Math.floor(totalW / cols);
+  let out = `<w:tbl><w:tblPr><w:tblW w:w="${totalW}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>`;
+  ['top','left','bottom','right','insideH','insideV'].forEach(k=> out += `<w:${k} w:val="single" w:sz="4" w:space="0" w:color="D5D5D5"/>`);
+  out += `</w:tblBorders><w:tblCellMar><w:top w:w="20" w:type="dxa"/><w:left w:w="25" w:type="dxa"/><w:bottom w:w="20" w:type="dxa"/><w:right w:w="25" w:type="dxa"/></w:tblCellMar></w:tblPr>`;
+  rows.forEach((r,ri)=>{
+    out += '<w:tr>';
+    r.forEach((c,ci)=>{
+      let fill = '';
+      let color = '111111';
+      if(ri===0){ fill='2F75B5'; color='FFFFFF'; }
+      else if(ri%2===1){ fill='DCEAF7'; }
+      out += makeCell(c,{fill,color,bold:ri===0,size:ri===0?16:17,width:colW,align:'center'});
+    });
+    for(let ci=r.length;ci<cols;ci++) out += makeCell('',{width:colW});
+    out += '</w:tr>';
+  });
+  return out + '</w:tbl>';
+}
+function makeContentTypes(){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+  `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">`+
+  `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>`+
+  `<Default Extension="xml" ContentType="application/xml"/>`+
+  `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>`+
+  `<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>`+
+  `</Types>`;
+}
+function makeRootRels(){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+  `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`+
+  `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>`+
+  `</Relationships>`;
+}
+function makeDocRels(){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+  `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`+
+  `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`+
+  `</Relationships>`;
+}
+function makeStylesXml(){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+  `<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`+
+  `<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="17"/><w:szCs w:val="17"/></w:rPr></w:rPrDefault></w:docDefaults>`+
+  `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>`+
+  `</w:styles>`;
+}
+function makeDocumentXml(pageParts){
+  let body='';
+  pageParts.forEach((part,idx)=>{
+    body += part;
+    if(idx < pageParts.length-1) body += '<w:p><w:pPr><w:pageBreakBefore/></w:pPr></w:p>';
+  });
+  body += `<w:sectPr>`+
+    `<w:pgSz w:w="11906" w:h="16838"/>`+
+    `<w:pgMar w:top="700" w:right="800" w:bottom="700" w:left="800" w:header="260" w:footer="260" w:gutter="0"/>`+
+    `<w:cols w:num="1"/>`+
+    `</w:sectPr>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>`+
+    `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${body}</w:body></w:document>`;
+}
+async function createEditableDocx(pageParts){
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml',makeContentTypes());
+  zip.folder('_rels').file('.rels',makeRootRels());
+  const word=zip.folder('word');
+  word.file('document.xml',makeDocumentXml(pageParts));
+  word.file('styles.xml',makeStylesXml());
+  word.folder('_rels').file('document.xml.rels',makeDocRels());
+  return await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+}
+function pageBlocksToDocx(blocks, headerCount=0){
+  let xml='';
+  let tableRows=[];
+  function flushTable(){
+    if(tableRows.length){ xml += makeTable(tableRows,{width:10300}); tableRows=[]; }
+  }
+  blocks.forEach((b,idx)=>{
+    if(b.isTable){
+      tableRows.push(b.cells);
+      return;
+    }
+    flushTable();
+    if(b.text && idx>=headerCount){
+      xml += wordPara(b.text,{align:'center',size:16,after:15});
+    }
+  });
+  flushTable();
+  return xml;
+}
+function renderPdf2Word(container){
+  let file=null;
+  const { zone, input } = makeDropzone({multiple:false, accept:'.pdf', hintText:'Select a PDF to create an editable Word file'});
+  container.appendChild(zone);
+  const info = el(`<div class="filelist"></div>`); container.appendChild(info);
+  const btn = el(`<button class="btn btn-primary" disabled style="margin-top:12px;">Convert to Editable Word</button>`);
+  container.appendChild(btn);
+  const status = statusBox(container);
+  container.appendChild(el(`<div class="hint-box">Yeh version PDF ko editable <b>.docx</b> mein convert karta hai. Headings, table cells aur footer text Word mein edit ho sakte hain. Original PDF jaisa layout jitna PDF structure allow kare utna preserve kiya jata hai.</div>`));
+
+  input.addEventListener('change', e=> handle(e.target.files[0]));
+  zone.addEventListener('drop', e=> handle(e.dataTransfer.files[0]));
+  function handle(f){ if(!f) return; file=f; info.innerHTML=''; info.appendChild(fileRow(f, ()=>{file=null; info.innerHTML=''; btn.disabled=true;})); btn.disabled=false; }
+
+  btn.addEventListener('click', async ()=>{
+    status.info('Building the editable structure from the PDF...');
+    try{
+      const bytes = await readAsArrayBuffer(file);
+      const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+      const allBlocks=[];
+      for(let i=1;i<=pdf.numPages;i++){
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        allBlocks.push(buildPageBlocks(content.items));
+        status.info(`Processing page ${i} / ${pdf.numPages}...`);
+      }
+      if(!allBlocks.length) throw new Error('No text structure was found in the PDF.');
+
+      // Do not invent or repeat any header/footer. Keep every text block
+      // extracted from the PDF so real headings/footers remain part of the
+      // converted document, while PDFs without them get none added.
+      const pageParts = allBlocks.map(blocks=>pageBlocksToDocx(blocks,0));
+      const blob = await createEditableDocx(pageParts);
+
+      // Add the Word output to the same in-page download history and
+      // immediately start the normal browser download. The item stays
+      // available until the page is fully refreshed or closed.
+      const baseName = (file && file.name ? file.name.replace(/\.pdf$/i,'') : 'converted-editable');
+      const saveName = `${baseName}.docx`;
+      await resultCard(container, saveName, blob);
+      status.success(`Download started: ${saveName}`);
+    }catch(err){ status.error('Error: ' + err.message); console.error(err); }
+  });
+}
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* Shared helpers for table-aware PDF text extraction.
+   Many PDFs (especially ones exported from HTML tables) represent the gap
+   between columns as its own whitespace text item rather than just a big
+   x-position jump — so we split cells on "wide" whitespace items instead of
+   guessing from coordinates alone. This is far more reliable for real tables.
+
+   One extra wrinkle some tables have: a cell whose text wraps onto 2 lines
+   (e.g. a long name) makes that row TALLER, and the PDF then vertically
+   centers the row's other single-line cells *between* the two wrapped
+   lines — so one logical table row ends up spread across 2-3 separate PDF
+   text baselines instead of 1. buildPageBlocks() detects that pattern (a
+   short/broken line sitting much closer to a table row than the normal
+   row-to-row spacing) and merges it back into the correct row + column
+   instead of spitting it out as a stray paragraph. */
+function groupItemsIntoLines(items){
+  // Sort by baseline (top of page first) then x — PDF content-stream order
+  // isn't always strict reading order, and relying on it can shuffle items
+  // (e.g. a row number) into the wrong line.
+  const sorted = items.slice().sort((a,b)=>{
+    const dy = b.transform[5]-a.transform[5];
+    if(Math.abs(dy) > 3) return dy;
+    return a.transform[4]-b.transform[4];
+  });
+  const lines = [];
+  let currentLine = [];
+  let lastY = null;
+  sorted.forEach(item=>{
+    const y = item.transform[5];
+    if(lastY!==null && Math.abs(y-lastY) > 3){
+      if(currentLine.length) lines.push(currentLine);
+      currentLine = [];
+    }
+    currentLine.push(item);
+    lastY = y;
+  });
+  if(currentLine.length) lines.push(currentLine);
+  lines.forEach(l=> l.sort((a,b)=> a.transform[4]-b.transform[4]));
+  return lines;
+}
+function splitLineIntoCellsWithX(lineItems){
+  const cells = [];
+  let cellText = '', cellX0 = null;
+  lineItems.forEach(item=>{
+    const isWhitespace = item.str.trim()==='';
+    const fontSize = Math.abs(item.transform[0]) || 10;
+    const threshold = fontSize * 0.6;
+    if(isWhitespace && item.width > threshold){
+      if(cellText.trim()!=='') cells.push({text: cellText.trim(), x0: cellX0});
+      cellText = ''; cellX0 = null;
+    } else {
+      if(cellX0===null) cellX0 = item.transform[4];
+      cellText += item.str;
+    }
+  });
+  if(cellText.trim()!=='') cells.push({text: cellText.trim(), x0: cellX0});
+  return cells;
+}
+function median(arr){
+  const s = arr.slice().sort((a,b)=>a-b);
+  const mid = Math.floor(s.length/2);
+  return s.length % 2 ? s[mid] : (s[mid-1]+s[mid])/2;
+}
+
+/* A single line having >=2 "cells" is NOT enough evidence it's a table row —
+   page titles, school names, and Urdu lines (which often get split into many
+   pieces by the PDF's internal spacing) can also produce multiple pieces.
+   Real tables show up as several CONSECUTIVE lines sharing the same column
+   count, so we look for that repeating pattern instead of judging line-by-line.
+   Returns an ordered array of blocks: {isTable:true, cells:[...]} for table
+   rows (already merged across wrapped lines) or {isTable:false, text} for
+   ordinary paragraphs. */
+function buildPageBlocks(items){
+  const lines = groupItemsIntoLines(items);
+  const lineCellsWithX = lines.map(li => splitLineIntoCellsWithX(li));
+  const lineCounts = lineCellsWithX.map(c => c.length);
+
+  // Find the most common column count (>=3) — that's our table signature.
+  const freq = {};
+  lineCounts.forEach(c=>{ if(c>=3) freq[c]=(freq[c]||0)+1; });
+  let tableCount=null, tableCountFreq=0;
+  Object.keys(freq).forEach(k=>{ if(freq[k]>tableCountFreq){tableCountFreq=freq[k]; tableCount=parseInt(k,10);} });
+
+  if(tableCount===null || tableCountFreq<3){
+    return lines.map((li,idx)=>({isTable:false, text: lineCellsWithX[idx].map(c=>c.text).join(' ').trim()}));
+  }
+
+  const strictAnchor = lineCounts.map(c=> c===tableCount);
+  const firstStrict = strictAnchor.indexOf(true);
+  const lastStrict = strictAnchor.lastIndexOf(true);
+
+  // Column x-positions learned from strict (fully-matched) rows only — most reliable.
+  const colX0s = Array.from({length:tableCount}, ()=>[]);
+  lines.forEach((li,idx)=>{
+    if(!strictAnchor[idx]) return;
+    lineCellsWithX[idx].forEach((c,ci)=>{ if(ci<tableCount) colX0s[ci].push(c.x0); });
+  });
+  const colMedianX = colX0s.map(arr=> arr.length? median(arr): null);
+  const colTolerance = (()=>{
+    const known = colMedianX.filter(x=>x!==null);
+    if(known.length<2) return 25;
+    const diffs=[]; for(let i=1;i<known.length;i++) diffs.push(known[i]-known[i-1]);
+    return Math.max(15, median(diffs)*0.4);
+  })();
+  function nearestColumn(x0){
+    let best=0, bestDist=Infinity;
+    colMedianX.forEach((m,ci)=>{ if(m===null) return; const d=Math.abs(m-x0); if(d<bestDist){bestDist=d; best=ci;} });
+    return {col:best, dist:bestDist};
+  }
+
+  // Typical row-to-row spacing, from strict rows.
+  const anchorYs = [];
+  lines.forEach((li,idx)=>{ if(strictAnchor[idx]) anchorYs.push(li[0].transform[5]); });
+  anchorYs.sort((a,b)=>b-a);
+  const gaps = []; for(let i=1;i<anchorYs.length;i++) gaps.push(Math.abs(anchorYs[i]-anchorYs[i-1]));
+  const rowSpacing = gaps.length? median(gaps) : 20;
+
+  const isAnchor = strictAnchor.slice();
+  // Header row often splits into a different cell count — include it if it
+  // sits right before the first detected table row.
+  if(firstStrict>0 && lineCounts[firstStrict-1]>=2) isAnchor[firstStrict-1]=true;
+  // A line missing 1-2 columns (its wrapped sibling landed on its own
+  // baseline) is still a row core if its cells line up with known columns.
+  lines.forEach((li,idx)=>{
+    if(isAnchor[idx] || idx<firstStrict || idx>lastStrict) return;
+    const c = lineCellsWithX[idx];
+    if(c.length < tableCount-2 || c.length>=tableCount) return;
+    if(c.every(cell=> nearestColumn(cell.x0).dist <= colTolerance)) isAnchor[idx]=true;
+  });
+
+  const rows = [], anchorRowIndex = {};
+  lines.forEach((li,idx)=>{
+    if(!isAnchor[idx]) return;
+    const rowCells = new Array(tableCount).fill('');
+    lineCellsWithX[idx].forEach((c,ci)=>{
+      const col = idx===firstStrict-1 ? Math.min(ci,tableCount-1) : nearestColumn(c.x0).col;
+      rowCells[col] = rowCells[col] ? rowCells[col]+' '+c.text : c.text;
+    });
+    rows.push({y: li[0].transform[5], cells: rowCells});
+    anchorRowIndex[idx] = rows.length-1;
+  });
+
+  // Fold leftover fragment lines (a wrapped cell's other half) into the
+  // nearest row, in the right column, only when it sits much closer to that
+  // row than a normal row gap would allow — i.e. it's clearly part of it.
+  const usedAsContinuation = new Array(lines.length).fill(false);
+  lines.forEach((li,idx)=>{
+    if(isAnchor[idx] || lineCounts[idx]===0) return;
+    const y = li[0].transform[5];
+    let nearest=null, nearestGap=Infinity;
+    rows.forEach(r=>{ const gap=Math.abs(r.y-y); if(gap<nearestGap){nearestGap=gap; nearest=r;} });
+    if(nearest && nearestGap < rowSpacing*0.6){
+      lineCellsWithX[idx].forEach(c=>{
+        const ci = nearestColumn(c.x0).col;
+        nearest.cells[ci] = y > nearest.y
+          ? (nearest.cells[ci] ? c.text+' '+nearest.cells[ci] : c.text)
+          : (nearest.cells[ci] ? nearest.cells[ci]+' '+c.text : c.text);
+      });
+      usedAsContinuation[idx]=true;
+    }
+  });
+
+  const blocks = [], emitted = new Set();
+  lines.forEach((li,idx)=>{
+    if(isAnchor[idx]){
+      const rIdx = anchorRowIndex[idx];
+      if(!emitted.has(rIdx)){ blocks.push({isTable:true, cells: rows[rIdx].cells}); emitted.add(rIdx); }
+    } else if(!usedAsContinuation[idx]){
+      const text = lineCellsWithX[idx].map(c=>c.text).join(' ').trim();
+      if(text) blocks.push({isTable:false, text});
+    }
+  });
+  return blocks;
+}
+
+/* ---------------- WORD -> PDF ---------------- */
+function renderWord2Pdf(container){
+  let file=null;
+  const { zone, input } = makeDropzone({multiple:false, accept:'.docx', hintText:'Select a .docx file (.doc files are not supported)'});
+  container.appendChild(zone);
+  const info = el(`<div class="filelist"></div>`); container.appendChild(info);
+  const btn = el(`<button class="btn btn-primary" disabled style="margin-top:12px;">Convert to PDF</button>`);
+  container.appendChild(btn);
+  const status = statusBox(container);
+  container.appendChild(el(`<div class="hint-box">Note: Formatting is approximate (basic text, headings, and lists). Complex Word layouts may differ.</div>`));
+
+  input.addEventListener('change', e=> handle(e.target.files[0]));
+  zone.addEventListener('drop', e=> handle(e.dataTransfer.files[0]));
+  function handle(f){ if(!f) return; file=f; info.innerHTML=''; info.appendChild(fileRow(f, ()=>{file=null; info.innerHTML=''; btn.disabled=true;})); btn.disabled=false; }
+
+  btn.addEventListener('click', async ()=>{
+    status.info('Reading .docx file...');
+    try{
+      const bytes = await readAsArrayBuffer(file);
+      const result = await mammoth.convertToHtml({arrayBuffer: bytes});
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:absolute; top:0; left:0; width:0; height:0; overflow:hidden; z-index:-1;';
+      const hiddenDiv = document.createElement('div');
+      hiddenDiv.style.cssText = 'width:700px; padding:30px; background:#fff; font-family:Georgia,serif; font-size:14px; color:#111;';
+      hiddenDiv.innerHTML = result.value;
+      wrapper.appendChild(hiddenDiv);
+      document.body.appendChild(wrapper);
+      status.info('Rendering PDF...');
+      // ek frame wait karein taake browser layout/paint complete kar le, warna html2canvas blank canvas bana sakta hai
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const canvas = await html2canvas(hiddenDiv, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false});
+      document.body.removeChild(wrapper);
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p','pt','a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = canvas.height * (imgW / canvas.width);
+      let heightLeft = imgH, position = 0;
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+      heightLeft -= pageH;
+      while(heightLeft > 0){
+        position = heightLeft - imgH;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+        heightLeft -= pageH;
+      }
+      const blob = pdf.output('blob');
+      resultCard(container, 'converted.pdf', blob);
+      status.success('Done!');
+    }catch(err){ status.error('Error: ' + err.message); }
+  });
+}
+
+/* ---------------- PDF -> EXCEL ---------------- */
+function renderPdf2Excel(container){
+  let file=null;
+  const { zone, input } = makeDropzone({multiple:false, accept:'.pdf', hintText:'Select a PDF to extract text/table data'});
+  container.appendChild(zone);
+  const info = el(`<div class="filelist"></div>`); container.appendChild(info);
+  const btn = el(`<button class="btn btn-primary" disabled style="margin-top:12px;">Convert to Excel</button>`);
+  container.appendChild(btn);
+  const status = statusBox(container);
+  container.appendChild(el(`<div class="hint-box">Note: This tool converts PDF text lines into rows and estimates columns from spacing. It works best with structured/simple tables.</div>`));
+
+  input.addEventListener('change', e=> handle(e.target.files[0]));
+  zone.addEventListener('drop', e=> handle(e.dataTransfer.files[0]));
+  function handle(f){ if(!f) return; file=f; info.innerHTML=''; info.appendChild(fileRow(f, ()=>{file=null; info.innerHTML=''; btn.disabled=true;})); btn.disabled=false; }
+
+  btn.addEventListener('click', async ()=>{
+    status.info('Extracting data...');
+    try{
+      const bytes = await readAsArrayBuffer(file);
+      const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+      const rows = [];
+      for(let i=1;i<=pdf.numPages;i++){
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const blocks = buildPageBlocks(content.items);
+        blocks.forEach(b=> rows.push(b.isTable ? b.cells : [b.text]));
+      }
+      const cleanRows = rows.filter(r=> r.some(c=>c)).map(r=> r.filter(c=>c!==''));
+      const ws = XLSX.utils.aoa_to_sheet(cleanRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const outArr = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+      const blob = new Blob([outArr], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      resultCard(container, 'extracted.xlsx', blob);
+      status.success('Done! ' + cleanRows.length + ' rows nikali gayi hain.');
+    }catch(err){ status.error('Error: ' + err.message); }
+  });
+}
+
+/* ---------------- EXCEL EXPORT / PDF / IMAGE ---------------- */
+function renderExcel2Pdf(container){
+  let file=null;
+  const { zone, input } = makeDropzone({multiple:false, accept:'.xlsx,.xls,.csv', hintText:'Select an Excel file'});
+  container.appendChild(zone);
+  const info = el(`<div class="filelist"></div>`); container.appendChild(info);
+
+  const controls = el(`
+    <div class="controls-row" style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
+      <div><label class="field-label">Output</label>
+        <select id="excelOutType">
+          <option value="pdf">PDF</option>
+          <option value="png">PNG Image</option>
+          <option value="jpg">JPG Image</option>
+          <option value="xlsx">Excel (.xlsx)</option>
+        </select>
+      </div>
+      <div><label class="field-label">Sheets</label>
+        <select id="excelSheetMode">
+          <option value="all-one">All sheets together</option>
+          <option value="each">Each sheet separately</option>
+          <option value="one">Selected sheet</option>
+        </select>
+      </div>
+      <div id="sheetSelectWrap" style="display:none"><label class="field-label">Sheet</label>
+        <select id="excelSheetSelect"></select>
+      </div>
+    </div>
+  `);
+  container.appendChild(controls);
+  const btn = el(`<button class="btn btn-primary" disabled style="margin-top:12px;">Convert</button>`);
+  container.appendChild(btn);
+  const status = statusBox(container);
+
+  // Website-level progress widget. It is attached to <body>, not this tool panel,
+  // so the user can navigate to another page while the export continues.
+  let progress=document.getElementById('globalExportProgress');
+  if(!progress){
+    progress=document.createElement('div');
+    progress.id='globalExportProgress';
+    progress.className='export-progress-overlay';
+    progress.innerHTML=`
+      <div class="export-progress-card" role="status" aria-live="polite">
+        <div class="export-progress-top">
+          <div class="export-spinner"></div>
+          <div style="min-width:0;flex:1">
+            <div class="export-progress-title">Please wait job is in progress...</div>
+            <div class="export-progress-sub" id="exportProgressText">Preparing...</div>
+          </div>
+        </div>
+        <div class="export-progress-track"><div class="export-progress-bar" id="exportProgressBar"></div></div>
+        <div class="export-progress-meta"><span id="exportProgressCount">0%</span><span id="exportProgressDetail">Starting...</span></div>
+        <div class="export-powered">Powered by Jaseem &nbsp;•&nbsp; WhatsApp 03154400102</div>
+      </div>`;
+    document.body.appendChild(progress);
+  }
+  const progressText=progress.querySelector('#exportProgressText');
+  const progressBar=progress.querySelector('#exportProgressBar');
+  const progressCount=progress.querySelector('#exportProgressCount');
+  const progressDetail=progress.querySelector('#exportProgressDetail');
+  function setExportProgress(percent,text,detail){
+    const pct=Math.max(0,Math.min(100,Number(percent)||0));
+    progress.style.display='block';
+    progressBar.style.width=pct+'%';
+    progressCount.textContent=Math.round(pct)+'%';
+    progressText.textContent=text||'Processing...';
+    progressDetail.textContent=detail||'';
+  }
+  function showExportProgress(text='Preparing...',detail='Starting...'){setExportProgress(2,text,detail);}
+  function hideExportProgress(){progress.style.display='none';}
+
+  let wb=null;
+  input.addEventListener('change', e=> handle(e.target.files[0]));
+  zone.addEventListener('drop', e=> handle(e.dataTransfer.files[0]));
+
+  function handle(f){
+    if(!f) return;
+    file=f; wb=null;
+    info.innerHTML=''; info.appendChild(fileRow(f, ()=>{file=null; wb=null; info.innerHTML=''; btn.disabled=true;}));
+    btn.disabled=false;
+  }
+
+  function getRows(sheet){
+    return XLSX.utils.sheet_to_json(sheet, {header:1, defval:'', raw:false});
+  }
+  function colCount(rows){ return Math.max(1, ...rows.map(r=>r.length)); }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+  function buildSheetHtml(name, rows){
+    const cols=colCount(rows);
+    let html=`<div style="display:inline-block;margin:0 0 18px 0;background:white;padding:8px;font-family:Arial,sans-serif;color:#111;"><div style="font-weight:700;font-size:14px;margin:0 0 6px 0;">${esc(name)}</div><table style="border-collapse:collapse;table-layout:auto;font-size:11px;">`;
+    rows.forEach(r=>{
+      html+='<tr>';
+      for(let c=0;c<cols;c++) html+=`<td style="border:1px solid #888;padding:4px 6px;white-space:pre-wrap;vertical-align:top;">${esc(r[c]??'')}</td>`;
+      html+='</tr>';
+    });
+    html+='</table></div>';
+    return html;
+  }
+
+  async function sheetCanvas(name, rows){
+    const wrap=document.createElement('div');
+    // Use a real measurable viewport instead of width:max-content. Some browsers
+    // report a zero-size off-screen element for max-content, which makes
+    // html2canvas return a 0x0 canvas and therefore a 0 KB/invalid PNG.
+    wrap.style.cssText='position:fixed;left:-200000px;top:0;background:#fff;padding:12px;display:block;box-sizing:border-box;';
+    wrap.innerHTML=buildSheetHtml(name,rows);
+    document.body.appendChild(wrap);
+
+    const content=wrap.firstElementChild;
+    const table=content?.querySelector('table');
+    const naturalW=Math.max(320, Math.min(16000, (table?.scrollWidth || table?.offsetWidth || 900) + 24));
+    wrap.style.width=naturalW+'px';
+    wrap.style.height='auto';
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+    const width=Math.max(1, Math.ceil(wrap.getBoundingClientRect().width));
+    const height=Math.max(1, Math.ceil(wrap.scrollHeight));
+    const canvas=await html2canvas(wrap,{backgroundColor:'#ffffff',scale:1.5,useCORS:true,logging:false,width,height,windowWidth:width,windowHeight:height});
+    wrap.remove();
+    if(!canvas.width || !canvas.height) throw new Error('Could not create image');
+    return canvas;
+  }
+
+  async function renderSheetPages(sh, mime='image/png', onProgress=()=>{}){
+    const rows=Array.isArray(sh.rows)?sh.rows:[];
+    if(!rows.length) return [];
+
+    // Build one measurable table first so we can split it into real page-sized chunks.
+    const measure=document.createElement('div');
+    measure.style.cssText='position:fixed;left:-200000px;top:0;width:1080px;background:#fff;padding:28px;box-sizing:border-box;font-family:Arial,sans-serif;color:#111;';
+    measure.innerHTML=`<div style="font-weight:700;font-size:18px;margin-bottom:12px;">${esc(sh.name||'Sheet')}</div><table style="border-collapse:collapse;width:100%;table-layout:auto;font-size:10px;"><tbody></tbody></table>`;
+    const tbody=measure.querySelector('tbody');
+    const cols=colCount(rows);
+    rows.forEach((r,ri)=>{
+      const tr=document.createElement('tr');
+      for(let c=0;c<cols;c++){
+        const td=document.createElement(ri===0?'th':'td');
+        td.textContent=r[c]==null?'':String(r[c]);
+        td.style.cssText='border:1px solid #777;padding:4px 5px;white-space:pre-wrap;vertical-align:top;line-height:1.25;'+(ri===0?'font-weight:700;background:#f0f0f0;':'');
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    });
+    document.body.appendChild(measure);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+    // A4-ish landscape page at 96 CSS px. Keep generous margins for readability.
+    const PAGE_W=1120, PAGE_H=790, PAD=28, HEADER_H=44, FOOTER_H=24;
+    const usableH=PAGE_H-PAD*2-HEADER_H-FOOTER_H;
+    const trs=[...tbody.querySelectorAll('tr')];
+    const heights=trs.map(tr=>Math.max(18,tr.getBoundingClientRect().height));
+    const chunks=[];
+    let start=0;
+    while(start<rows.length){
+      let h=0, end=start;
+      while(end<rows.length){
+        const rh=heights[end]||20;
+        if(end>start && h+rh>usableH) break;
+        h+=rh; end++;
+      }
+      chunks.push(rows.slice(start,end));
+      start=end;
+    }
+    measure.remove();
+
+    const pages=[];
+    for(let pi=0;pi<chunks.length;pi++){
+      const chunk=chunks[pi];
+      const wrap=document.createElement('div');
+      wrap.style.cssText=`position:fixed;left:-200000px;top:0;width:${PAGE_W}px;height:${PAGE_H}px;background:#fff;padding:${PAD}px;box-sizing:border-box;font-family:Arial,sans-serif;color:#111;overflow:hidden;`;
+      const title=document.createElement('div');
+      title.style.cssText='height:'+HEADER_H+'px;box-sizing:border-box;font-weight:700;font-size:18px;display:flex;align-items:flex-start;';
+      title.textContent=sh.name||'Sheet';
+      const table=document.createElement('table');
+      table.style.cssText='border-collapse:collapse;width:100%;table-layout:auto;font-size:10px;';
+      const body=document.createElement('tbody');
+      chunk.forEach((r,ri)=>{
+        const tr=document.createElement('tr');
+        const globalRow=pi===0?ri:(0); // first row of each page is kept as data unless it is the workbook header
+        const isHeader=(rows.indexOf(r)===0);
+        for(let c=0;c<cols;c++){
+          const cell=document.createElement(isHeader?'th':'td');
+          cell.textContent=r[c]==null?'':String(r[c]);
+          cell.style.cssText='border:1px solid #777;padding:4px 5px;white-space:pre-wrap;vertical-align:top;line-height:1.25;'+(isHeader?'font-weight:700;background:#f0f0f0;':'');
+          tr.appendChild(cell);
+        }
+        body.appendChild(tr);
+      });
+      table.appendChild(body);
+      const footer=document.createElement('div');
+      footer.style.cssText='position:absolute;left:'+PAD+'px;right:'+PAD+'px;bottom:8px;height:16px;font-size:9px;text-align:right;color:#555;';
+      footer.textContent=`Page ${pi+1} of ${chunks.length}`;
+      wrap.appendChild(title); wrap.appendChild(table); wrap.appendChild(footer);
+      document.body.appendChild(wrap);
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      const canvas=await html2canvas(wrap,{backgroundColor:'#fff',scale:1.5,useCORS:true,logging:false,width:PAGE_W,height:PAGE_H,windowWidth:PAGE_W,windowHeight:PAGE_H});
+      wrap.remove();
+      if(!canvas.width || !canvas.height) throw new Error('Could not create image');
+      const blob=await canvasToBlob(canvas,mime,mime==='image/jpeg'?0.95:1);
+      pages.push({no:pi+1,blob});
+      onProgress(pi+1,chunks.length);
+    }
+    return pages;
+  }
+
+  async function canvasToBlob(canvas,type='image/png',quality=1){
+    if(!canvas || !canvas.width || !canvas.height) throw new Error('Could not create image');
+    return await new Promise((resolve,reject)=>canvas.toBlob(b=>b && b.size ? resolve(b) : reject(new Error('Could not create image')),type,quality));
+  }
+
+  controls.querySelector('#excelSheetMode').addEventListener('change',()=>{
+    const mode=controls.querySelector('#excelSheetMode').value;
+    controls.querySelector('#sheetSelectWrap').style.display=mode==='one'?'block':'none';
+  });
+
+  async function ensureWorkbook(){
+    if(wb) return wb;
+    const bytes=await readAsArrayBuffer(file);
+    wb=XLSX.read(bytes,{type:'array'});
+    const sel=controls.querySelector('#excelSheetSelect');
+    sel.innerHTML=wb.SheetNames.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join('');
+    return wb;
+  }
+
+  btn.addEventListener('click', async ()=>{
+    status.info('Processing Excel sheets...');
+    showExportProgress('Please wait job is in progress...','Preparing Excel export...');
+    try{
+      const book=await ensureWorkbook();
+      const outType=controls.querySelector('#excelOutType').value;
+      const mode=controls.querySelector('#excelSheetMode').value;
+      let selected=[];
+      if(mode==='one') selected=[Number(controls.querySelector('#excelSheetSelect').value||0)];
+      else selected=book.SheetNames.map((_,i)=>i);
+
+      if(outType==='xlsx'){
+        if(mode==='each'){
+          const zip=new JSZip();
+          for(let si=0;si<selected.length;si++){
+            const i=selected[si];
+            setExportProgress(10+(si/Math.max(1,selected.length))*80,`Exporting ${book.SheetNames[i]}`,`Sheet ${si+1} of ${selected.length}`);
+            const out=XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(out,book.Sheets[book.SheetNames[i]],book.SheetNames[i].slice(0,31)||'Sheet1');
+            const arr=XLSX.write(out,{bookType:'xlsx',type:'array'});
+            zip.file(`${book.SheetNames[i] || 'Sheet'+(i+1)}.xlsx`,arr);
+          }
+          setExportProgress(92,'Creating ZIP file...','Almost finished');
+          const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'},meta=>setExportProgress(92+meta.percent*.08,'Creating ZIP file...',`${Math.round(meta.percent)}%`));
+          resultCard(container,`${file.name.replace(/\.[^.]+$/,'')}-sheets.zip`,blob);
+        } else {
+          setExportProgress(45,'Creating Excel file...','Writing selected sheets');
+          const out=XLSX.utils.book_new();
+          for(const i of selected){
+            const n=book.SheetNames[i];
+            XLSX.utils.book_append_sheet(out,book.Sheets[n],n.slice(0,31)||`Sheet${i+1}`);
+          }
+          const arr=XLSX.write(out,{bookType:'xlsx',type:'array'});
+          resultCard(container,`${file.name.replace(/\.[^.]+$/,'')}-export.xlsx`,new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+        }
+        setExportProgress(100,'Export complete','Download is ready');
+        status.success('Excel export ready.');
+        return;
+      }
+
+      const sheets=selected.map(i=>({name:book.SheetNames[i],rows:getRows(book.Sheets[book.SheetNames[i]])})).filter(x=>x.rows.length);
+      if(!sheets.length){status.error('The workbook has no data.');return;}
+
+      if(outType==='png' || outType==='jpg'){
+        const mime=outType==='jpg'?'image/jpeg':'image/png';
+        const ext=outType==='jpg'?'jpg':'png';
+        const exportSheets=mode==='one'?[sheets[0]]:sheets;
+        const zip=new JSZip();
+        for(let si=0;si<exportSheets.length;si++){
+          const sh=exportSheets[si];
+          const folderName=(sh.name||'Sheet').replace(/[\\/:*?"<>|]/g,'_').trim()||'Sheet';
+          const folder=zip.folder(folderName);
+          setExportProgress(5+(si/exportSheets.length)*85,`Processing ${sh.name}`,`Preparing sheet ${si+1} of ${exportSheets.length}`);
+          const pages=await renderSheetPages(sh,mime,(done,total)=>{
+            const pct=5+((si+done/Math.max(1,total))/exportSheets.length)*85;
+            const shownPage=Math.min(Math.max(1,done+1),total);
+            setExportProgress(pct,`Processing ${sh.name}`,`Page ${shownPage} of ${total} • Sheet ${si+1} of ${exportSheets.length}`);
+          });
+          for(const pg of pages) folder.file(`page-${String(pg.no).padStart(3,'0')}.${ext}`,pg.blob);
+        }
+        setExportProgress(92,'Creating ZIP file...','Almost finished');
+        const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'},meta=>setExportProgress(92+meta.percent*.08,'Creating ZIP file...',`${Math.round(meta.percent)}%`));
+        const suffix=mode==='one'?`${ext}-pages.zip`:(mode==='each'?'sheet-pages.zip':'all-sheet-pages.zip');
+        resultCard(container,`${file.name.replace(/\.[^.]+$/,'')}-${suffix}`,blob);
+        setExportProgress(100,'Export complete','Download is ready');
+        status.success(`${outType.toUpperCase()} export ready: each sheet is split into page images.`);
+        return;
+      }
+
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF('l','pt','a4');
+      let first=true;
+      setExportProgress(15,'Creating PDF...','Preparing sheets');
+      for(let si=0;si<sheets.length;si++){
+        const sh=sheets[si];
+        if(!first) pdf.addPage();
+        first=false;
+        const rows=sh.rows;
+        const head=rows.length?[rows[0].map(v=>String(v??''))]:[];
+        const body=rows.slice(1).map(r=>r.map(v=>String(v??'')));
+        pdf.setFontSize(12); pdf.text(sh.name,24,22);
+        pdf.autoTable({startY:30,head,body,styles:{fontSize:8,cellPadding:3},margin:{top:30,left:24,right:24,bottom:24},theme:'grid'});
+        setExportProgress(15+((si+1)/sheets.length)*80,'Creating PDF...',`Sheet ${si+1} of ${sheets.length}`);
+      }
+      resultCard(container,`${file.name.replace(/\.[^.]+$/,'')}-sheets.pdf`,pdf.output('blob'));
+      setExportProgress(100,'Export complete','Download is ready');
+      status.success('PDF export ready.');
+    }catch(err){ status.error('Error: '+(err.message||err)); }
+    finally{ setTimeout(hideExportProgress,900); }
+  });
+}
+
+const RENDERERS = {
+  merge: renderMerge,
+  split: renderSplit,
+  insert: renderInsert,
+  reader: renderReader,
+  img2pdf: renderImg2Pdf,
+  pdf2img: renderPdf2Img,
+  pdf2word: renderPdf2Word,
+  word2pdf: renderWord2Pdf,
+  pdf2excel: renderPdf2Excel,
+  excel2pdf: renderExcel2Pdf,
+};
+
+loadTool('merge');
+}
+
+
+
+function showPromoSuccessPopup(){
+  var p=document.getElementById('promoSuccessPopup');
+  if(p){
+    p.classList.add('show');
+    p.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+  }
+}
+function closePromoSuccessPopup(){
+  var p=document.getElementById('promoSuccessPopup');
+  if(p){
+    p.classList.remove('show');
+    p.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';
+  }
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape') closePromoSuccessPopup();
+});
+document.addEventListener('click',function(e){
+  var p=document.getElementById('promoSuccessPopup');
+  if(p && e.target===p) closePromoSuccessPopup();
+});

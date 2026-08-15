@@ -1,45 +1,36 @@
 
 (function(){
-  function b64ToBlob(b64, mime){
-    const binStr = atob(b64);
-    const len = binStr.length;
-    const bytes = new Uint8Array(len);
-    for(let i=0;i<len;i++) bytes[i] = binStr.charCodeAt(i);
-    return new Blob([bytes], {type: mime});
-  }
-  function loadScriptFromB64(b64){
-    return new Promise((resolve, reject)=>{
-      const blob = b64ToBlob(b64, 'application/javascript');
-      const url = URL.createObjectURL(blob);
-      const s = document.createElement('script');
-      s.src = url;
-      s.onload = ()=> resolve();
-      s.onerror = ()=> reject(new Error('Library load failed'));
-      document.head.appendChild(s);
-    });
-  }
-  async function boot(){
-    const data = window.__PDF_EDITOR_LIB_DATA;
-    await loadScriptFromB64(data.pdflib);
-    await loadScriptFromB64(data.pdfjs);
-    await loadScriptFromB64(data.jspdf);
-    await loadScriptFromB64(data.autotable);
-    await loadScriptFromB64(data.mammoth);
-    await loadScriptFromB64(data.xlsx);
-    await loadScriptFromB64(data.jszip);
-    await loadScriptFromB64(data.html2canvas);
-    const workerBlob = b64ToBlob(data.pdfworker, 'application/javascript');
-    window.__pdfWorkerBlobUrl = URL.createObjectURL(workerBlob);
-    initApp();
-  }
-  window.addEventListener('DOMContentLoaded', boot);
+  const files = {
+    pdflib:'lib/pdflib.js', pdfjs:'lib/pdfjs.js', jspdf:'lib/jspdf.js',
+    autotable:'lib/autotable.js', mammoth:'lib/mammoth.js', xlsx:'lib/xlsx.js',
+    jszip:'lib/jszip.js', html2canvas:'lib/html2canvas.js'
+  };
+  const loading = {};
+  window.PDFEditorLoader = {
+    load(name){
+      if(window.__PDF_EDITOR_LOADED && window.__PDF_EDITOR_LOADED[name]) return Promise.resolve();
+      window.__PDF_EDITOR_LOADED = window.__PDF_EDITOR_LOADED || {};
+      if(loading[name]) return loading[name];
+      loading[name] = new Promise((resolve,reject)=>{
+        const s=document.createElement('script');
+        s.src=files[name];
+        s.async=true;
+        s.onload=()=>{ window.__PDF_EDITOR_LOADED[name]=true; resolve(); };
+        s.onerror=()=>reject(new Error('Library failed to load: '+name));
+        document.head.appendChild(s);
+      });
+      return loading[name];
+    },
+    async loadMany(names){ await Promise.all(names.map(n=>this.load(n))); }
+  };
+  window.addEventListener('DOMContentLoaded', ()=>initApp());
 })();
 
 
 
 function initApp(){
-const { PDFDocument, degrees } = PDFLib;
-pdfjsLib.GlobalWorkerOptions.workerSrc = window.__pdfWorkerBlobUrl;
+  window.__pdfWorkerReady = false;
+  let PDFDocument;
 
 const TOOLS = {
   merge:    { title:'Merge PDFs', sub:'Combine multiple PDF files into one file in the selected order.', stamp:'MERGE' },
@@ -67,13 +58,31 @@ document.querySelectorAll('.nav-item').forEach(item=>{
   });
 });
 
-function loadTool(name){
+const TOOL_LIBS = {
+  merge:['pdflib'], split:['pdflib','pdfjs'], insert:['pdflib','pdfjs'],
+  reader:['pdfjs'], img2pdf:['pdflib'], pdf2img:['pdfjs','html2canvas','jszip'],
+  pdf2word:['pdfjs','mammoth'], word2pdf:['mammoth','jspdf','html2canvas'],
+  pdf2excel:['pdfjs','xlsx'], excel2pdf:['xlsx','jspdf','autotable','html2canvas','jszip']
+};
+async function loadTool(name){
   const t = TOOLS[name];
   toolTitle.textContent = t.title;
   toolSub.textContent = t.sub;
   toolStamp.textContent = t.stamp;
-  toolArea.innerHTML = '';
-  RENDERERS[name](toolArea);
+  toolArea.innerHTML = '<div style="padding:28px;text-align:center;color:#64748b">Preparing '+t.title+'…</div>';
+  try{
+    await PDFEditorLoader.loadMany(TOOL_LIBS[name] || []);
+    if(TOOL_LIBS[name].includes('pdfjs') && !window.__pdfWorkerReady){
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.js';
+      window.__pdfWorkerReady = true;
+    }
+    if(TOOL_LIBS[name].includes('pdflib')) PDFDocument = PDFLib.PDFDocument;
+    toolArea.innerHTML = '';
+    RENDERERS[name](toolArea);
+  }catch(err){
+    toolArea.innerHTML = '<div style="padding:28px;text-align:center;color:#b91c1c">Library loading failed. Please refresh and try again.</div>';
+    console.error(err);
+  }
 }
 
 const topToolsBtn=document.getElementById('topToolsBtn');
@@ -1842,6 +1851,8 @@ const RENDERERS = {
 };
 
 loadTool('merge');
+  // After the UI is visible, quietly warm the most common PDF libraries.
+  setTimeout(()=>PDFEditorLoader.loadMany(['pdfjs']).catch(()=>{}), 700);
 }
 
 

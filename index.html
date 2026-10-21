@@ -39,6 +39,11 @@
         <span class="btn-text-mobile">Live Coding</span>
       </a>
     </div>
+    <a href="gold-calculator.html" class="gold-calc-btn">
+      <span class="dot-gold"></span>
+      <span class="btn-full">Gold Calculator by JGold</span>
+      <span class="btn-short">Gold Calc</span>
+    </a>
     <button class="menu-btn" id="menuBtn" aria-label="Toggle menu" aria-expanded="false">
       <span></span><span></span><span></span>
     </button>
@@ -302,6 +307,44 @@
   }
   @media (max-width:520px){
     .code-practice-btn{font-size:12.5px;padding:9px 14px;}
+  }
+
+
+  .gold-calc-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    padding:10px 20px;
+    border-radius:999px;
+    background:linear-gradient(135deg,#F6D365,#D4AF37);
+    border:1px solid #D4AF37;
+    color:#231a04 !important;
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    font-weight:700;
+    text-decoration:none;
+    white-space:nowrap;
+    align-self:center;
+    margin-left:auto;
+    margin-right:auto;
+    box-shadow:0 2px 14px rgba(212,175,55,.45);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .gold-calc-btn:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(212,175,55,.6);}
+  .gold-calc-btn .dot-gold{
+    width:7px;height:7px;border-radius:50%;
+    background:#7a5c00;
+    box-shadow:0 0 0 0 rgba(122,92,0,.5);
+    animation:pulse-dot 1.8s infinite;
+  }
+  .gold-calc-btn .btn-short{display:none;}
+  @media (max-width:820px){
+    .gold-calc-btn{padding:8px 12px;font-size:12px;}
+  }
+  @media (max-width:520px){
+    .gold-calc-btn .btn-full{display:none;}
+    .gold-calc-btn .btn-short{display:inline;}
+    .gold-calc-btn{padding:8px 10px;}
   }
 
   /* ===== Dark mode toggle switch =====

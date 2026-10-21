@@ -53,11 +53,11 @@
     <div class="src"><span id="srcLine">Fetching live rate&hellip;</span><button type="button" id="refreshBtn">Refresh</button></div>
 
     <div class="lbl mt">OR ENTER YOUR OWN RATE (Rs PER TOLA)</div>
-    <input type="number" id="manualRate" inputmode="numeric" placeholder="e.g. 429500">
-    <div class="note">If you type a rate here, all calculations use your rate instead of the live rate.</div>
+    <input type="text" id="manualRate" inputmode="numeric" placeholder="e.g. 429500">
+    <div class="note">If you type a rate here, all calculations use your rate instead of the live rate. Press Refresh any time to remove your rate and go back to the live rate.</div>
 
     <div class="lbl mt">CUSTOM TOLA WEIGHT</div>
-    <input type="number" id="tolaWeight" inputmode="decimal" step="0.001" value="12.150">
+    <input type="text" id="tolaWeight" inputmode="decimal" value="12.150">
     <div class="mini-chips">
       <button type="button" class="chip mini" id="twCustom">12.150 g</button>
       <button type="button" class="chip mini" id="twStd">Standard 11.664 g</button>
@@ -69,7 +69,7 @@
     <div class="lbl">KARAT</div>
     <div class="chips" id="karats"></div>
     <div class="lbl mt">WEIGHT</div>
-    <input type="number" id="weightIn" inputmode="decimal" step="any" value="1">
+    <input type="text" id="weightIn" inputmode="decimal" value="1">
     <div class="mini-chips" id="units"></div>
     <div class="note" id="wBreak">&nbsp;</div>
     <div class="lbl mt">ESTIMATED VALUE (BUYING)</div>
@@ -93,7 +93,7 @@
     <div id="paneSell">
       <table id="sellTbl"></table>
       <div class="lbl mt">WRITE YOUR CUSTOM PERCENTAGE (%)</div>
-      <input type="number" id="customPct" inputmode="decimal" step="any" placeholder="e.g. 15">
+      <input type="text" id="customPct" inputmode="decimal" placeholder="e.g. 15">
       <table><tr><td class="pct" id="cPct">—</td><td class="cut" id="cCut"></td><td id="cNet">—</td></tr></table>
       <div class="note">When you sell gold, jewellers deduct a cutting percentage. These rows show what you would receive after each deduction.</div>
     </div>
@@ -165,7 +165,7 @@ function render(){
   [20,16,12,10].forEach(function(p){if(v==null){rows+='<tr><td class="pct">'+p+'% cutting</td><td></td><td>—</td></tr>';}else{var net=v*(1-p/100);rows+='<tr><td class="pct">'+p+'% cutting</td><td class="cut">Deduction '+fmt(v-net)+'</td><td>'+fmt(net)+'</td></tr>';}});
   $('sellTbl').innerHTML=rows;
   var cp=parseFloat($('customPct').value);
-  if(v!=null&&isFinite(cp)&&cp>0&&cp<100){var n2=v*(1-cp/100);$('cPct').textContent=cp+'% cutting';$('cCut').textContent='Deduction '+fmt(v-n2);$('cNet').textContent=fmt(n2);}
+  if(v!=null&&isFinite(cp)&&cp>0){var n2=Math.max(0,v*(1-cp/100));$('cPct').textContent=cp+'% cutting';$('cCut').textContent='Deduction '+fmt(v-n2);$('cNet').textContent=fmt(n2);}
   else{$('cPct').textContent='—';$('cCut').textContent='';$('cNet').textContent='—';}
   saveSet();
 }
@@ -201,14 +201,15 @@ function fetchRates(){
     .catch(function(){return fetch('https://data-asg.goldprice.org/dbXRates/USD').then(function(r){return r.json();}).then(function(j){return j.items[0].xauPrice;});});
   var p2=fetch('https://open.er-api.com/v6/latest/USD').then(function(r){return r.json();}).then(function(j){return j.rates.PKR;});
   Promise.all([p1,p2]).then(function(a){
-    live.intl=a[0]*a[1]/OZ*STD;live.src='Live Rate';saveRate();live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    live.intl=a[0]*a[1]/OZ*STD;live.src='Live Rate';if(wantLive){$('manualRate').value='';wantLive=false;}saveRate();live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     render();fetchBoard();
-  }).catch(function(){live.src=(live.intl!=null||live.board!=null)?'No internet — showing last live rate':'No internet — enter your own rate above to calculate offline';render();});
+  }).catch(function(){wantLive=false;live.src=(live.intl!=null||live.board!=null)?'No internet — showing last live rate':'No internet — enter your own rate above to calculate offline';render();});
 }
-['manualRate','tolaWeight','weightIn','customPct'].forEach(function(id){$(id).addEventListener('input',render);});
+['manualRate','tolaWeight','weightIn','customPct'].forEach(function(id){$(id).addEventListener('input',function(){var el=$(id);var cl=el.value.replace(/[^0-9.]/g,'');if(cl!==el.value)el.value=cl;render();});});
 $('twCustom').onclick=function(){$('tolaWeight').value='12.150';render();};
 $('twStd').onclick=function(){$('tolaWeight').value='11.664';render();};
-$('refreshBtn').onclick=fetchRates;
+var wantLive=false;
+$('refreshBtn').onclick=function(){wantLive=true;fetchRates();};
 $('tabVal').onclick=function(){$('tabVal').className='tab on';$('tabSell').className='tab';$('paneVal').style.display='';$('paneSell').style.display='none';};
 $('tabSell').onclick=function(){$('tabSell').className='tab on';$('tabVal').className='tab';$('paneSell').style.display='';$('paneVal').style.display='none';};
 loadSet();if(loadRate()){live.src='Last live rate';}render();fetchRates();

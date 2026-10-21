@@ -40,6 +40,15 @@
   .note{font-size:11.5px;color:#8a8f98;margin-top:7px;line-height:1.5}
   .mini-chips{display:flex;gap:7px;margin-top:8px}
   .mini{flex:0 1 auto;padding:6px 12px;font-size:12px}
+  .mini{margin-top:14px;background:#fff;border:1px solid #e7dfc8;border-top:4px solid #14532d;border-radius:14px;padding:14px 16px}
+  .minititle{font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:700;color:#17351f}
+  .minirow{display:flex;gap:8px;margin-top:10px}
+  .minirow input{flex:1;min-width:0}
+  .minirow select{width:94px;padding:10px;border:1.5px solid #ddd6bd;border-radius:10px;font-size:15px;background:#fff;color:#1f2733;font-family:inherit}
+  .minicalc{width:100%;margin-top:10px;background:#14532d;color:#fff;border:none;padding:11px;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer}
+  .mrow2{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed #e2dcc4;font-size:14px;color:#5b6472}
+  .mrow2:last-child{border-bottom:none}
+  .mrow2 b{color:#17351f;font-size:15.5px}
   .result{background:#faf5e9;border:1px solid #e7ddc3;border-radius:14px;padding:18px}
   .rk{font-size:11px;font-weight:800;letter-spacing:1.6px;color:#6b7280;text-align:center}
   .rbig{font-family:Georgia,'Times New Roman',serif;font-size:44px;font-weight:700;color:#14532d;text-align:center;margin-top:4px}
@@ -138,6 +147,7 @@
         </div>
       </div>
 
+      <div class="rcol">
       <div class="result" id="resultPanel">
         <div class="rk" id="resHead">24K &middot; PESHAWAR</div>
         <div class="rbig" id="resBig"><small>Rs</small> 0</div>
@@ -150,6 +160,25 @@
           <button type="button" id="copyBtn">Copy</button>
           <button type="button" class="wa" id="waBtn">WhatsApp +92 315 4400102</button>
         </div>
+      </div>
+      <div class="mini">
+        <div class="minititle">Did you buy???</div>
+        <div class="minirow">
+          <input type="text" id="buyW" inputmode="decimal" placeholder="Weight">
+          <select id="buyUnit">
+            <option value="tola" selected>Tola</option>
+            <option value="gram">Gram</option>
+            <option value="masha">Masha</option>
+            <option value="ounce">Ounce</option>
+          </select>
+        </div>
+        <input type="text" id="buyP" inputmode="numeric" placeholder="Price paid (Rs)" style="margin-top:8px">
+        <button type="button" class="minicalc" id="buyBtn">Calculate</button>
+        <div class="miniout">
+          <div class="mrow2"><span>Per tola you got</span><b id="buyTola">—</b></div>
+          <div class="mrow2"><span>Per gram you got</span><b id="buyGram">—</b></div>
+        </div>
+      </div>
       </div>
     </div>
   </div>
@@ -246,7 +275,7 @@ function fetchRates(){
 $('refreshBtn').onclick=fetchRates;
 $('citySel').addEventListener('change',function(){S.city=$('citySel').value;render();});
 $('purSel').addEventListener('change',function(){S.karat=$('purSel').value;render();});
-['manualRate','tolaWeight','weightIn','customPct'].forEach(function(id){$(id).addEventListener('input',function(){var el=$(id);var cl=el.value.replace(/[^0-9.]/g,'');if(cl!==el.value)el.value=cl;render();});});
+['manualRate','tolaWeight','weightIn','customPct','buyW','buyP'].forEach(function(id){$(id).addEventListener('input',function(){var el=$(id);var cl=el.value.replace(/[^0-9.]/g,'');if(cl!==el.value)el.value=cl;render();});});
 $('twStd').onclick=function(){$('tolaWeight').value='11.664';render();};
 $('calcBtn').onclick=function(){render();var p=$('resultPanel');p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash');p.scrollIntoView({behavior:'smooth',block:'nearest'});};
 $('resetBtn').onclick=function(){$('weightIn').value='';$('manualRate').value='';$('customPct').value='';S.city='Peshawar';S.karat='24K';S.unit='Gram';render();};
@@ -267,6 +296,19 @@ $('priceModal').addEventListener('click',function(e){if(e.target===$('priceModal
 $('modalRate').addEventListener('input',function(){var el=$('modalRate');var cl=el.value.replace(/[^0-9.]/g,'');if(cl!==el.value)el.value=cl;});
 $('modalSet').onclick=function(){var v=parseFloat($('modalRate').value);if(v>0){$('manualRate').value=$('modalRate').value;}closeModal();render();};
 $('liveBtn').onclick=function(){$('manualRate').value='';render();};
+
+function buyCalc(){
+  var tg=tolaG();
+  var w=parseFloat($('buyW').value);var p=parseFloat($('buyP').value);
+  if(!(w>0)||!(p>0)){$('buyTola').textContent='—';$('buyGram').textContent='—';return;}
+  var per={gram:1,tola:tg,masha:tg/12,ounce:OZ}[$('buyUnit').value];
+  var pg=p/(w*per);
+  $('buyGram').textContent=fmt(pg);
+  $('buyTola').textContent=fmt(pg*tg);
+}
+$('buyBtn').onclick=buyCalc;
+['buyW','buyP'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')buyCalc();});});
+$('buyUnit').addEventListener('change',buyCalc);
 (function(){var sel=$('citySel');CITIES.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});loadSet();if(loadRate())live.src='Last live rate';render();fetchRates();})();
 </script>
 </body>

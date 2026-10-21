@@ -3,37 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gold Calculator by JGold — Live Gold Rate &amp; Weight Calculator</title>
-<meta name="description" content="Live gold rate for Peshawar, Karachi, Lahore and International markets. Enter any weight and see its value, plus selling amounts after cutting percentages.">
+<title>Gold Calculator by JGold — Live Gold Price Calculator Pakistan</title>
+<meta name="description" content="Live gold price calculator for Pakistan. Select your city and purity, enter any weight in gram, tola, masha or ounce and see the value instantly. Plus selling estimates and an offline custom rate.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#070d18;color:#eef2f8;font-family:'Inter',system-ui,sans-serif;min-height:100vh;
-    background-image:radial-gradient(900px 500px at 80% -10%,rgba(212,175,55,.14),transparent 60%),radial-gradient(700px 500px at 0% 0%,rgba(38,80,160,.20),transparent 55%)}
-  .wrap{max-width:480px;margin:0 auto;padding:18px 14px 40px}
-  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-  .home{color:#cdb872;text-decoration:none;font-size:13px;font-weight:600;border:1px solid rgba(212,175,55,.45);padding:7px 12px;border-radius:999px}
-  .brand{font-family:'Space Grotesk',sans-serif;font-size:13px;letter-spacing:2px;color:#94a3b8}
-  h1{font-family:'Space Grotesk',sans-serif;font-size:30px;text-align:center;line-height:1.15}
-  h1 .gold{background:linear-gradient(120deg,#f6d365,#d4af37 55%,#b8860b);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .tag{text-align:center;color:#94a3b8;font-size:13px;margin:6px 0 18px}
-  .card{background:rgba(15,23,40,.92);border:1px solid rgba(148,163,184,.18);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-  .lbl{font-size:11px;font-weight:700;letter-spacing:1.4px;color:#9fb0c9;margin-bottom:8px}
-  .chips{display:flex;gap:7px;flex-wrap:wrap}
-  .chip{border:1px solid rgba(148,163,184,.35);background:#0b1526;color:#dbe4f2;border-radius:999px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
-  .chip.on{background:linear-gradient(135deg,#f6d365,#d4af37);border-color:#d4af37;color:#231a04}
-  .rate-big{font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;text-align:center;color:#f0c93f;margin-top:12px}
-  .rate-sub{text-align:center;color:#94a3b8;font-size:12.5px;margin-top:2px}
-  .src{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;font-size:11.5px;color:#7d8ea9}
-  .src button{background:none;border:1px solid rgba(148,163,184,.4);color:#cdb872;border-radius:999px;padding:4px 10px;font-size:11.5px;cursor:pointer;font-weight:600}
-  input[type=number]{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(148,163,184,.35);background:#0b1526;color:#fff;font-size:17px;font-weight:600}
-  input[type=number]:focus{outline:2px solid #d4af37;outline-offset:1px}
-  .mt{margin-top:14px}
+  body{background:#f4efe3;color:#1f2937;font-family:'Inter',system-ui,sans-serif;min-height:100vh}
+  .wrap{max-width:880px;margin:0 auto;padding:16px 14px 42px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .home{color:#8a6d1f;text-decoration:none;font-size:13px;font-weight:700;border:1px solid #d9c27a;padding:7px 12px;border-radius:999px;background:#fff}
+  .brand{font-family:'Space Grotesk',sans-serif;font-size:12.5px;letter-spacing:2px;color:#8a8f98}
+  .card{background:#fff;border:1px solid #e7ddc3;border-top:4px solid #d4af37;border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 8px 24px rgba(120,96,20,.08)}
+  .chead{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
+  .kick{font-size:11px;font-weight:800;letter-spacing:1.6px;color:#a07c14}
+  h2{font-family:Georgia,'Times New Roman',serif;font-size:27px;font-weight:700;color:#17351f;margin-top:3px}
+  .ratechips{display:flex;gap:8px}
+  .rchip{border:1px solid #e7ddc3;background:#fbf8ef;border-radius:10px;padding:7px 12px;text-align:right;min-width:86px}
+  .rchip span{display:block;font-size:10.5px;font-weight:700;color:#8a8f98;letter-spacing:.6px}
+  .rchip b{font-size:15.5px;color:#17351f}
+  .src{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:12px;color:#6b7280;flex-wrap:wrap}
+  .src button{background:#fff;border:1px solid #d9c27a;color:#8a6d1f;border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;font-weight:700}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+  .lbl{font-size:11px;font-weight:800;letter-spacing:1.3px;color:#6b7280;margin:12px 0 7px}
+  .lbl:first-child{margin-top:0}
+  select,input[type=text]{width:100%;padding:12px;border-radius:10px;border:1px solid #d8d2c0;background:#fff;color:#1f2937;font-size:16px;font-weight:600}
+  select:focus,input[type=text]:focus{outline:2px solid #d4af37;outline-offset:1px}
+  .units{display:flex;gap:6px;margin-top:8px}
+  .chip{flex:1;border:1px solid #d8d2c0;background:#fbf8ef;color:#4b5563;border-radius:9px;padding:9px 4px;font-size:13.5px;font-weight:700;cursor:pointer}
+  .chip.on{background:linear-gradient(135deg,#e9c860,#d4af37);border-color:#d4af37;color:#231a04}
+  .btnrow{display:flex;gap:9px;margin-top:16px}
+  .calc{flex:1;background:#14532d;color:#fff;border:none;border-radius:10px;padding:14px;font-size:16px;font-weight:800;cursor:pointer}
+  .reset{background:#fff;border:1px solid #d8d2c0;color:#4b5563;border-radius:10px;padding:14px 18px;font-size:14.5px;font-weight:700;cursor:pointer}
+  .note{font-size:11.5px;color:#8a8f98;margin-top:7px;line-height:1.5}
   .mini-chips{display:flex;gap:7px;margin-top:8px}
-  .mini{font-size:12px;padding:6px 10px}
-  .note{font-size:11.5px;color:#7d8ea9;margin-top:7px;line-height:1.5}
+  .mini{flex:0 1 auto;padding:6px 12px;font-size:12px}
+  .result{background:#faf5e9;border:1px solid #e7ddc3;border-radius:14px;padding:18px}
+  .rk{font-size:11px;font-weight:800;letter-spacing:1.6px;color:#6b7280;text-align:center}
+  .rbig{font-family:Georgia,'Times New Roman',serif;font-size:44px;font-weight:700;color:#14532d;text-align:center;margin-top:4px}
+  .rbig small{font-size:22px;color:#a07c14}
+  .rsub{text-align:center;color:#6b7280;font-size:12.5px;margin-top:2px}
+  .rrow{display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid #eadfc6;font-size:14px;margin-top:6px}
+  .rrow span{color:#4b5563}.rrow b{color:#1f2937}
+  .rtot{display:flex;justify-content:space-between;align-items:center;padding:11px 2px 2px;font-size:14px}
+  .rtot b{color:#14532d;font-size:17px}
+  .share{display:flex;gap:9px;margin-top:14px}
+  .share button{flex:1;padding:11px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:1px solid #d8d2c0;background:#fff;color:#1f2937}
+  .share .wa{color:#128c4b;border-color:#bfe6cf;background:#f2fbf5}
+  .flash{animation:fl .7s ease}
+  @keyframes fl{0%{box-shadow:0 0 0 0 rgba(212,175,55,.55)}100%{box-shadow:0 0 0 16px rgba(212,175,55,0)}}
 </style>
 </head>
 <body>
@@ -42,125 +62,134 @@
     <a class="home" href="index.html">&larr; Home</a>
     <span class="brand">JASEEM.STORE</span>
   </div>
-  <h1><span class="gold">Gold Calculator</span><br>by JGold</h1>
-  <p class="tag">Live gold rates &amp; instant weight-to-value calculation</p>
 
   <div class="card">
-    <div class="lbl">SELECT MARKET</div>
-    <div class="chips" id="markets"></div>
-    <div class="rate-big" id="rateBig">Loading&hellip;</div>
-    <div class="rate-sub" id="rateSub">per Tola &middot; 24K Gold</div>
-    <div class="src"><span id="srcLine">Fetching live rate&hellip;</span><button type="button" id="refreshBtn">Refresh</button></div>
-
-    <div class="lbl mt">OR ENTER YOUR OWN RATE (Rs PER TOLA)</div>
-    <input type="text" id="manualRate" inputmode="numeric" placeholder="e.g. 429500">
-    <div class="note">If you type a rate here, all calculations use your rate instead of the live rate. Press Refresh any time to remove your rate and go back to the live rate.</div>
-
-    <div class="lbl mt">CUSTOM TOLA WEIGHT</div>
-    <input type="text" id="tolaWeight" inputmode="decimal" value="12.150">
-    <div class="mini-chips">
-      <button type="button" class="chip mini" id="twCustom">12.150 g</button>
-      <button type="button" class="chip mini" id="twStd">Standard 11.664 g</button>
+    <div class="chead">
+      <div>
+        <div class="kick">&#9670; LIVE GOLD RATE &middot; PAKISTAN</div>
+        <h2>Gold Price Calculator</h2>
+      </div>
+      <div class="ratechips">
+        <div class="rchip"><span>24K / TOLA</span><b id="rc24">—</b></div>
+        <div class="rchip"><span>22K / TOLA</span><b id="rc22">—</b></div>
+        <div class="rchip"><span>21K / TOLA</span><b id="rc21">—</b></div>
+      </div>
     </div>
-    <div class="note">Grams in one tola, as used in your market. All gram and masha conversions use this weight.</div>
+    <div class="src"><span id="srcLine">Fetching live rate&hellip;</span><button type="button" id="refreshBtn">Refresh</button><span>&middot; Gold Calculator by JGold</span></div>
+
+    <div class="grid">
+      <div>
+        <div class="lbl">CITY</div>
+        <select id="citySel"></select>
+        <div class="lbl">PURITY</div>
+        <select id="purSel">
+          <option value="24K">24K &middot; 999</option>
+          <option value="22K">22K &middot; 916</option>
+          <option value="21K">21K &middot; 875</option>
+          <option value="18K">18K &middot; 750</option>
+        </select>
+        <div class="lbl">WEIGHT</div>
+        <input type="text" id="weightIn" inputmode="decimal" placeholder="e.g. 12.150">
+        <div class="units" id="units"></div>
+        <div class="btnrow">
+          <button type="button" class="calc" id="calcBtn">Calculate</button>
+          <button type="button" class="reset" id="resetBtn">Reset</button>
+        </div>
+        <div class="lbl" style="margin-top:18px">YOUR OWN RATE (Rs PER TOLA) — OPTIONAL</div>
+        <input type="text" id="manualRate" inputmode="numeric" placeholder="e.g. 429500">
+        <div class="note">If you type a rate here, all calculations use your rate instead of the live rate. Press Refresh any time to remove your rate and go back to the live rate. Your rate also works fully offline.</div>
+        <div class="lbl" style="margin-top:14px">CUSTOM TOLA WEIGHT (GRAMS IN 1 TOLA)</div>
+        <input type="text" id="tolaWeight" inputmode="decimal" value="12.150">
+        <div class="mini-chips">
+          <button type="button" class="chip mini" id="twCustom">12.150 g</button>
+          <button type="button" class="chip mini" id="twStd">Standard 11.664 g</button>
+        </div>
+        <div class="note">Grams in one tola, as used in your market. Tola and masha conversions use this weight (1 tola = 12 masha).</div>
+      </div>
+
+      <div class="result" id="resultPanel">
+        <div class="rk" id="resHead">24K &middot; PESHAWAR</div>
+        <div class="rbig" id="resBig"><small>Rs</small> 0</div>
+        <div class="rsub" id="resSub">&nbsp;</div>
+        <div class="rrow"><span>Per gram</span><b id="rGram">—</b></div>
+        <div class="rrow"><span id="rTolaLbl">Per tola</span><b id="rTola">—</b></div>
+        <div class="rrow"><span>Per ounce (31.10 g)</span><b id="rOunce">—</b></div>
+        <div class="rtot"><span id="resYour">Your —</span><b id="resTot">—</b></div>
+        <div class="share">
+          <button type="button" id="copyBtn">Copy</button>
+          <button type="button" class="wa" id="waBtn">WhatsApp</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
-    <div class="lbl">KARAT</div>
-    <div class="chips" id="karats"></div>
-    <div class="lbl mt">WEIGHT</div>
-    <input type="text" id="weightIn" inputmode="decimal" value="1">
-    <div class="mini-chips" id="units"></div>
-    <div class="note" id="wBreak">&nbsp;</div>
-    <div class="lbl mt">ESTIMATED VALUE (BUYING)</div>
-    <div class="rate-big" id="valBig" style="margin-top:2px">Rs 0</div>
-    <div class="rate-sub">Approximate value of this weight at the rate above</div>
-  </div>
-
-  <div class="card">
-    <div class="tabs">
-      <div class="tab" id="tabVal">Value</div>
-      <div class="tab on" id="tabSell">Want to Sell</div>
-    </div>
-    <div id="paneVal" style="display:none">
-      <table>
-        <tr><td>Rate used</td><td id="sumRate">—</td></tr>
-        <tr><td>Weight</td><td id="sumWeight">—</td></tr>
-        <tr><td>Estimated value</td><td id="sumValue">—</td></tr>
-      </table>
-      <div class="note">This is the buying-side value of your gold at the selected rate, before any jeweller making charges.</div>
-    </div>
-    <div id="paneSell">
-      <table id="sellTbl"></table>
-      <div class="lbl mt">WRITE YOUR CUSTOM PERCENTAGE (%)</div>
-      <input type="text" id="customPct" inputmode="decimal" placeholder="e.g. 15">
-      <table><tr><td class="pct" id="cPct">—</td><td class="cut" id="cCut"></td><td id="cNet">—</td></tr></table>
-      <div class="note">When you sell gold, jewellers deduct a cutting percentage. These rows show what you would receive after each deduction.</div>
-    </div>
+    <div class="kick">&#9670; SELLING YOUR GOLD</div>
+    <h2 style="font-size:22px">Want to Sell</h2>
+    <p class="note" style="margin-top:4px">When you sell gold, jewellers deduct a cutting percentage. For the weight above, this is what you would receive after each deduction:</p>
+    <table class="sell" id="sellTbl"></table>
+    <div class="lbl" style="margin-top:14px">WRITE YOUR CUSTOM PERCENTAGE (%)</div>
+    <input type="text" id="customPct" inputmode="decimal" placeholder="e.g. 15">
+    <table class="sell"><tr><td class="pct" id="cPct">—</td><td class="cut" id="cCut"></td><td id="cNet" style="text-align:right;font-weight:700">—</td></tr></table>
   </div>
 
   <div class="card" style="text-align:center">
-    <div class="lbl" style="text-align:center">GET THE APP</div>
+    <div class="kick" style="text-align:center">&#9670; GET THE APP</div>
+    <p class="note" style="text-align:center;margin-bottom:10px">Install the JGold Calculator on your Android phone and use it anywhere — even without internet, with your own custom rate.</p>
     <a class="apk" href="JGold-Calculator.apk" download>Download Android App (APK)</a>
-    <div class="note" style="text-align:center">Install the JGold Calculator on your Android phone and use it anywhere.</div>
   </div>
 
-  <p class="foot">Rates are indicative only and can change at any time. Please confirm the final rate with your jeweller before buying or selling.<br><br>Gold Calculator by JGold &middot; jaseem.store</p>
+  <p class="foot">Indicative estimate of metal value, based on the live international gold feed converted into rupees. A jeweller's price adds making charges, and selling deductions vary by buyer. One national live rate is applied for all cities — please confirm the final rate with your jeweller.<br><br>Gold Calculator by JGold &middot; jaseem.store</p>
 </div>
 
 <style>
-  .tabs{display:flex;border:1px solid rgba(148,163,184,.3);border-radius:12px;overflow:hidden;margin-bottom:12px}
-  .tab{flex:1;text-align:center;padding:10px;font-size:14px;font-weight:600;background:#0b1526;color:#94a3b8;cursor:pointer}
-  .tab.on{background:linear-gradient(135deg,#f6d365,#d4af37);color:#231a04}
-  table{width:100%;border-collapse:collapse;font-size:14.5px}
-  td{padding:9px 4px;border-bottom:1px solid rgba(148,163,184,.15)}
-  td:last-child{text-align:right;font-weight:700}
-  .cut{color:#94a3b8;font-size:12px;text-align:right;font-weight:500}
-  .pct{font-weight:800;color:#f0c93f;white-space:nowrap}
-  .apk{display:inline-block;margin-top:4px;padding:14px 22px;border-radius:999px;background:linear-gradient(135deg,#f6d365,#d4af37);color:#231a04;font-weight:800;font-size:15.5px;text-decoration:none;box-shadow:0 4px 18px rgba(212,175,55,.45)}
-  .foot{text-align:center;color:#64748b;font-size:11.5px;line-height:1.6;margin-top:6px}
+  table.sell{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:8px}
+  table.sell td{padding:9px 4px;border-bottom:1px solid #eee3c8}
+  table.sell td:last-child{text-align:right;font-weight:700}
+  .pct{font-weight:800;color:#a07c14;white-space:nowrap}
+  .cut{color:#8a8f98;font-size:12px;text-align:right;font-weight:500}
+  .apk{display:inline-block;padding:14px 24px;border-radius:999px;background:linear-gradient(135deg,#e9c860,#d4af37);color:#231a04;font-weight:800;font-size:15.5px;text-decoration:none;box-shadow:0 4px 16px rgba(212,175,55,.4)}
+  .foot{text-align:center;color:#8a8f98;font-size:11.5px;line-height:1.6}
 </style>
 
 <script>
 var STD=11.6638038, OZ=31.1034768;
 var KF={'24K':1,'22K':22/24,'21K':21/24,'18K':18/24};
-var MARKETS=['Peshawar','Karachi','Lahore','International'];
-var UNITS=['Tola','Gram','Masha'];
-var S={market:'Peshawar',karat:'24K',unit:'Tola'};
-var live={board:null,intl:null,src:'',time:''};
+var CITIES=['Karachi','Lahore','Islamabad','Rawalpindi','Peshawar','Quetta','Faisalabad','Multan','Hyderabad','Sialkot','Gujranwala','Bahawalpur','Sargodha','Sukkur','Abbottabad','Swabi','Mardan','Mingora','Gujrat','Sheikhupura','Rahim Yar Khan','Kasur','Jhelum','Dera Ghazi Khan','Wah Cantt','Okara','Sahiwal','Mirpur Khas','Nawabshah','Larkana','Kohat','Dera Ismail Khan','Gilgit','Gwadar','International'];
+var UNITS=['Gram','Tola','Masha','Ounce'];
+var S={city:'Peshawar',karat:'24K',unit:'Gram'};
+var live={intl:null,src:'',time:''};
 function $(i){return document.getElementById(i);}
 function fmt(n){if(n==null||!isFinite(n))return'—';return 'Rs '+Math.round(n).toLocaleString('en-IN');}
-function chips(id,items,cur,unit,cb){var el=$(id);el.innerHTML='';items.forEach(function(it){var b=document.createElement('button');b.type='button';b.className='chip'+(unit?' mini':'')+(it===cur?' on':'');b.textContent=it;b.onclick=function(){cb(it);};el.appendChild(b);});}
+function num(n){if(n==null||!isFinite(n))return'—';return Math.round(n).toLocaleString('en-IN');}
 function tolaG(){var v=parseFloat($('tolaWeight').value);return v>0?v:12.150;}
-function gramsOf(){var w=parseFloat($('weightIn').value)||0;if(S.unit==='Tola')return w*tolaG();if(S.unit==='Masha')return w*tolaG()/12;return w;}
+function gramsOf(){var w=parseFloat($('weightIn').value)||0;if(S.unit==='Tola')return w*tolaG();if(S.unit==='Masha')return w*tolaG()/12;if(S.unit==='Ounce')return w*OZ;return w;}
 function manual(){var v=parseFloat($('manualRate').value);return v>0?v:null;}
-function liveRate(){if(S.market==='International')return live.intl;return live.board!=null?live.board:live.intl;}
-function calc(){
-  var m=manual(),k=KF[S.karat],g=gramsOf();
-  if(m!=null)return m*k*(g/tolaG());
-  var r=liveRate();if(r==null)return null;
-  return r*k*(g/STD);
-}
-function saveSet(){try{localStorage.setItem('jgold-set',JSON.stringify({m:$('manualRate').value,tw:$('tolaWeight').value,w:$('weightIn').value,cp:$('customPct').value,mk:S.market,kr:S.karat,un:S.unit}));}catch(e){}}
-function loadSet(){try{var j=JSON.parse(localStorage.getItem('jgold-set')||'null');if(!j)return;if(j.m)$('manualRate').value=j.m;if(j.tw)$('tolaWeight').value=j.tw;if(j.w)$('weightIn').value=j.w;if(j.cp)$('customPct').value=j.cp;if(j.mk)S.market=j.mk;if(j.kr)S.karat=j.kr;if(j.un)S.unit=j.un;}catch(e){}}
-function saveRate(){try{localStorage.setItem('jgold-rate',JSON.stringify({i:live.intl,b:live.board,t:live.time}));}catch(e){}}
-function loadRate(){try{var j=JSON.parse(localStorage.getItem('jgold-rate')||'null');if(!j)return false;live.intl=j.i;live.board=j.b;live.time=j.t;return live.intl!=null||live.board!=null;}catch(e){return false;}}
+function perGram24(){var m=manual();if(m!=null)return m/tolaG();if(live.intl==null)return null;return live.intl/STD;}
+function calc(){var pg=perGram24();if(pg==null)return null;return gramsOf()*pg*KF[S.karat];}
+function saveSet(){try{localStorage.setItem('jgold-set',JSON.stringify({m:$('manualRate').value,tw:$('tolaWeight').value,w:$('weightIn').value,cp:$('customPct').value,ct:S.city,kr:S.karat,un:S.unit}));}catch(e){}}
+function loadSet(){try{var j=JSON.parse(localStorage.getItem('jgold-set')||'null');if(!j)return;if(j.m)$('manualRate').value=j.m;if(j.tw)$('tolaWeight').value=j.tw;if(j.w)$('weightIn').value=j.w;if(j.cp)$('customPct').value=j.cp;if(j.ct)S.city=j.ct;if(j.kr)S.karat=j.kr;if(j.un)S.unit=j.un;}catch(e){}}
+function saveRate(){try{localStorage.setItem('jgold-rate',JSON.stringify({i:live.intl,t:live.time}));}catch(e){}}
+function loadRate(){try{var j=JSON.parse(localStorage.getItem('jgold-rate')||'null');if(!j)return false;live.intl=j.i;live.time=j.t;return live.intl!=null;}catch(e){return false;}}
+function unitsRender(){var el=$('units');el.innerHTML='';UNITS.forEach(function(u){var b=document.createElement('button');b.type='button';b.className='chip'+(u===S.unit?' on':'');b.textContent=u;b.onclick=function(){S.unit=u;render();};el.appendChild(b);});}
 function render(){
-  chips('markets',MARKETS,S.market,false,function(v){S.market=v;pickBoard();render();});
-  chips('karats',Object.keys(KF),S.karat,false,function(v){S.karat=v;render();});
-  chips('units',UNITS,S.unit,true,function(v){S.unit=v;render();});
-  var m=manual(),rb=$('rateBig'),rs=$('rateSub');
-  if(m!=null){rb.textContent=fmt(m);rs.textContent='per Tola (your custom tola weight) · Manual rate';}
-  else{var r=liveRate();if(r==null){rb.textContent='—';rs.textContent='Live rate unavailable — please enter your own rate above';}
-  else{rb.textContent=fmt(r);rs.textContent='per Tola (standard 11.664 g) · 24K · '+(S.market==='International'?'International spot':'Live market — '+S.market);}}
-  $('srcLine').textContent=(m!=null?'Manual rate in use':(live.src?live.src+(live.time?' · '+live.time:''):''));
-  var g=gramsOf();
-  $('wBreak').textContent='= '+g.toFixed(3)+' grams · '+(g/tolaG()).toFixed(3)+' tola (custom) · '+(g/STD).toFixed(3)+' tola (standard)';
-  var v=calc();
-  $('valBig').textContent=fmt(v);
-  $('sumRate').textContent=m!=null?fmt(m)+' / tola (manual)':fmt(liveRate())+' / tola';
-  $('sumWeight').textContent=g.toFixed(3)+' grams';
-  $('sumValue').textContent=fmt(v);
+  $('citySel').value=S.city;$('purSel').value=S.karat;unitsRender();
+  var pg=perGram24(),k=KF[S.karat];
+  $('rc24').textContent=pg==null?'—':num(pg*tolaG());
+  $('rc22').textContent=pg==null?'—':num(pg*tolaG()*KF['22K']);
+  $('rc21').textContent=pg==null?'—':num(pg*tolaG()*KF['21K']);
+  var m=manual();
+  $('srcLine').textContent=m!=null?'Manual rate in use':(live.src?live.src+(live.time?' · '+live.time:''):'');
+  var g=gramsOf(),v=calc();
+  $('resHead').textContent=S.karat+' · '+S.city.toUpperCase();
+  $('resBig').innerHTML='<small>Rs</small> '+(v==null?'—':num(v));
+  $('resSub').textContent=pg==null?'Enter your own rate above to calculate':(g.toFixed(3)+' g at '+fmt(pg*k)+' per gram');
+  $('rGram').textContent=pg==null?'—':fmt(pg*k);
+  $('rTolaLbl').textContent='Per tola ('+tolaG().toFixed(3)+' g)';
+  $('rTola').textContent=pg==null?'—':fmt(pg*k*tolaG());
+  $('rOunce').textContent=pg==null?'—':fmt(pg*k*OZ);
+  $('resYour').textContent='Your '+(g/tolaG()).toFixed(3)+' tola · '+S.karat+' · '+(k*100).toFixed(1)+'%';
+  $('resTot').textContent=fmt(v);
   var rows='';
   [20,16,12,10].forEach(function(p){if(v==null){rows+='<tr><td class="pct">'+p+'% cutting</td><td></td><td>—</td></tr>';}else{var net=v*(1-p/100);rows+='<tr><td class="pct">'+p+'% cutting</td><td class="cut">Deduction '+fmt(v-net)+'</td><td>'+fmt(net)+'</td></tr>';}});
   $('sellTbl').innerHTML=rows;
@@ -169,50 +198,33 @@ function render(){
   else{$('cPct').textContent='—';$('cCut').textContent='';$('cNet').textContent='—';}
   saveSet();
 }
-function pickBoard(){
-  if(!live.page) return;
-  var clean=live.page, v=null, city=S.market;
-  if(city!=='International'){
-    var idx=clean.toLowerCase().indexOf(city.toLowerCase());
-    if(idx>=0){
-      var seg=clean.slice(idx,idx+1500);
-      var m=seg.match(/24\s*Karat[\s\S]{0,220}?([0-9]{6,})/i);
-      if(m) v=parseFloat(m[1]);
-    }
-  }
-  if(v==null){
-    var m2=clean.match(/24\s*Karat[\s\S]{0,220}?([0-9]{6,})/i);
-    if(m2) v=parseFloat(m2[1]);
-  }
-  if(v!=null&&v>100000&&v<2000000) live.board=v; else if(city!=='International') live.board=null;
-}
-function fetchBoard(){
-  var u='https://api.allorigins.win/raw?url='+encodeURIComponent('https://www.urdupoint.com/business/gold-rate.html');
-  fetch(u).then(function(r){return r.text();}).then(function(t){
-    live.page=t.replace(/,/g,'');
-    pickBoard();
-    if(live.board!=null){ live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); saveRate(); }
-    render();
-  }).catch(function(){});
-}
+</script>
+
+<script>
+var wantLive=false;
 function fetchRates(){
   live.src='Fetching live rate…';render();
   var p1=fetch('https://api.gold-api.com/price/XAU').then(function(r){return r.json();}).then(function(j){return j.price;})
     .catch(function(){return fetch('https://data-asg.goldprice.org/dbXRates/USD').then(function(r){return r.json();}).then(function(j){return j.items[0].xauPrice;});});
   var p2=fetch('https://open.er-api.com/v6/latest/USD').then(function(r){return r.json();}).then(function(j){return j.rates.PKR;});
   Promise.all([p1,p2]).then(function(a){
-    live.intl=a[0]*a[1]/OZ*STD;live.src='Live Rate';if(wantLive){$('manualRate').value='';wantLive=false;}saveRate();live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    render();fetchBoard();
-  }).catch(function(){wantLive=false;live.src=(live.intl!=null||live.board!=null)?'No internet — showing last live rate':'No internet — enter your own rate above to calculate offline';render();});
+    live.intl=a[0]*a[1]/OZ*STD;live.src='Live Rate';live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    if(wantLive){$('manualRate').value='';wantLive=false;}
+    saveRate();render();
+  }).catch(function(){wantLive=false;live.src=live.intl!=null?'No internet — showing last live rate':'No internet — enter your own rate above to calculate offline';render();});
 }
+$('refreshBtn').onclick=function(){wantLive=true;fetchRates();};
+$('citySel').addEventListener('change',function(){S.city=$('citySel').value;render();});
+$('purSel').addEventListener('change',function(){S.karat=$('purSel').value;render();});
 ['manualRate','tolaWeight','weightIn','customPct'].forEach(function(id){$(id).addEventListener('input',function(){var el=$(id);var cl=el.value.replace(/[^0-9.]/g,'');if(cl!==el.value)el.value=cl;render();});});
 $('twCustom').onclick=function(){$('tolaWeight').value='12.150';render();};
 $('twStd').onclick=function(){$('tolaWeight').value='11.664';render();};
-var wantLive=false;
-$('refreshBtn').onclick=function(){wantLive=true;fetchRates();};
-$('tabVal').onclick=function(){$('tabVal').className='tab on';$('tabSell').className='tab';$('paneVal').style.display='';$('paneSell').style.display='none';};
-$('tabSell').onclick=function(){$('tabSell').className='tab on';$('tabVal').className='tab';$('paneSell').style.display='';$('paneVal').style.display='none';};
-loadSet();if(loadRate()){live.src='Last live rate';}render();fetchRates();
+$('calcBtn').onclick=function(){render();var p=$('resultPanel');p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash');p.scrollIntoView({behavior:'smooth',block:'nearest'});};
+$('resetBtn').onclick=function(){$('weightIn').value='';$('manualRate').value='';$('customPct').value='';S.city='Peshawar';S.karat='24K';S.unit='Gram';render();};
+function summary(){var v=calc();var w=$('weightIn').value||'0';return 'Gold Calculator by JGold — '+S.karat+' · '+S.city+': '+w+' '+S.unit.toLowerCase()+' = '+fmt(v)+' (Rate '+fmt(perGram24()*tolaG())+' per tola) — jaseem.store/gold-calculator.html';}
+$('copyBtn').onclick=function(){var t=summary();if(navigator.clipboard)navigator.clipboard.writeText(t);$('copyBtn').textContent='Copied ✓';setTimeout(function(){$('copyBtn').textContent='Copy';},1600);};
+$('waBtn').onclick=function(){window.open('https://wa.me/?text='+encodeURIComponent(summary()),'_blank');};
+(function(){var sel=$('citySel');CITIES.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});loadSet();if(loadRate())live.src='Last live rate';render();fetchRates();})();
 </script>
 </body>
 </html>

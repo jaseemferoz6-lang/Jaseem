@@ -59,6 +59,16 @@
   .crow{display:flex;align-items:center;gap:9px;margin-top:12px}
   .clbl{font-size:11.5px;font-weight:800;letter-spacing:.8px;color:#6b7280;white-space:nowrap}
   .cin{max-width:180px;padding:9px 10px !important}
+  .pricerow{display:flex;gap:9px;margin-top:12px}
+  .pbtn{flex:1;padding:12px 8px;border-radius:10px;border:1px solid #d9c27a;background:#fff;color:#8a6d1f;font-size:14px;font-weight:800;cursor:pointer}
+  .pbtn.active{background:linear-gradient(135deg,#e9c860,#d4af37);color:#231a04;border-color:#d4af37}
+  .modal{position:fixed;inset:0;background:rgba(20,25,35,.55);align-items:center;justify-content:center;z-index:60;padding:18px}
+  .mbox{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:340px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+  .mtitle{font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:700;color:#17351f}
+  .mrow{display:flex;gap:9px;margin-top:16px}
+  .mbtn{flex:1;padding:12px;border-radius:10px;font-size:14.5px;font-weight:800;cursor:pointer}
+  .mbtn.ghost{background:#fff;border:1px solid #d8d2c0;color:#4b5563}
+  .mbtn.solid{background:#14532d;border:none;color:#fff}
   .flash{animation:fl .7s ease}
   @keyframes fl{0%{box-shadow:0 0 0 0 rgba(212,175,55,.55)}100%{box-shadow:0 0 0 16px rgba(212,175,55,0)}}
 </style>
@@ -84,11 +94,23 @@
       </div>
     </div>
     <div class="src"><span id="srcLine">Fetching live rate&hellip;</span><button type="button" id="refreshBtn">Refresh</button><span>&middot; Gold Calculator by JGold</span></div>
-    <div class="crow">
-      <span class="clbl">CUSTOM RATE (Rs / TOLA)</span>
-      <input type="text" id="manualRate" class="cin" inputmode="numeric" placeholder="Empty = live">
+    <div class="pricerow">
+      <button type="button" class="pbtn" id="customBtn">Set Custom Price</button>
+      <button type="button" class="pbtn" id="liveBtn">Set Live Rates</button>
     </div>
-    <div class="note">If the live rate is slightly off, type your own rate here — every calculation then uses your rate, even without internet. Press Refresh or pull down to go back to the live rate.</div>
+    <div class="note">Your custom price stays saved and is used for every calculation — even without internet — until you tap Set Live Rates. Refresh only freshens the live rate; it never removes your custom price.</div>
+    <input type="hidden" id="manualRate">
+    <div class="modal" id="priceModal" style="display:none">
+      <div class="mbox">
+        <div class="mtitle">Set Custom Price</div>
+        <div class="lbl" style="margin-top:12px">RATE PER TOLA (Rs)</div>
+        <input type="text" id="modalRate" inputmode="numeric" placeholder="e.g. 429500">
+        <div class="mrow">
+          <button type="button" class="mbtn ghost" id="modalCancel">Cancel</button>
+          <button type="button" class="mbtn solid" id="modalSet">Set Price</button>
+        </div>
+      </div>
+    </div>
 
     <div class="grid">
       <div>
@@ -188,7 +210,8 @@ function render(){
   $('rc22').textContent=pg==null?'—':num(pg*tolaG()*KF['22K']);
   $('rc21').textContent=pg==null?'—':num(pg*tolaG()*KF['21K']);
   var m=manual();
-  $('srcLine').textContent=m!=null?'Manual rate in use':(live.src?live.src+(live.time?' · '+live.time:''):'');
+  $('srcLine').textContent=m!=null?'Custom price in use':(live.src?live.src+(live.time?' · '+live.time:''):'');
+  var cb=$('customBtn');if(m!=null){cb.textContent='Custom Price: '+fmt(m);cb.classList.add('active');}else{cb.textContent='Set Custom Price';cb.classList.remove('active');}
   var g=gramsOf(),v=calc();
   $('resHead').textContent=S.karat+' · '+S.city.toUpperCase();
   $('resBig').innerHTML='<small>Rs</small> '+(v==null?'—':num(v));
@@ -210,7 +233,6 @@ function render(){
 </script>
 
 <script>
-var wantLive=false;
 function fetchRates(){
   live.src='Fetching live rate…';render();
   var p1=fetch('https://api.gold-api.com/price/XAU').then(function(r){return r.json();}).then(function(j){return j.price;})
@@ -218,11 +240,10 @@ function fetchRates(){
   var p2=fetch('https://open.er-api.com/v6/latest/USD').then(function(r){return r.json();}).then(function(j){return j.rates.PKR;});
   Promise.all([p1,p2]).then(function(a){
     live.intl=a[0]*a[1]/OZ*STD;live.src='Live Rate';live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    if(wantLive){$('manualRate').value='';wantLive=false;}
     saveRate();render();
-  }).catch(function(){wantLive=false;live.src=live.intl!=null?'No internet — showing last live rate':'No internet — enter your own rate below to calculate offline';render();});
+  }).catch(function(){live.src=live.intl!=null?'No internet — showing last live rate':'No internet — enter your own rate below to calculate offline';render();});
 }
-$('refreshBtn').onclick=function(){wantLive=true;fetchRates();};
+$('refreshBtn').onclick=fetchRates;
 $('citySel').addEventListener('change',function(){S.city=$('citySel').value;render();});
 $('purSel').addEventListener('change',function(){S.karat=$('purSel').value;render();});
 ['manualRate','tolaWeight','weightIn','customPct'].forEach(function(id){$(id).addEventListener('input',function(){var el=$(id);var cl=el.value.replace(/[^0-9.]/g,'');if(cl!==el.value)el.value=cl;render();});});
@@ -236,7 +257,16 @@ $('waBtn').onclick=function(){window.open('https://wa.me/923154400102?text='+enc
 var tsY=null;
 document.addEventListener('touchstart',function(e){if(window.scrollY<=0)tsY=e.touches[0].clientY;},{passive:true});
 document.addEventListener('touchmove',function(e){if(tsY==null)return;var dy=e.touches[0].clientY-tsY;var el=$('ptr');if(dy>10){el.style.opacity='1';el.textContent=dy>70?'\u2191 Release to refresh':'\u2193 Pull down to refresh live rate';}},{passive:true});
-document.addEventListener('touchend',function(e){var el=$('ptr');if(tsY!=null&&(e.changedTouches[0].clientY-tsY)>70){el.textContent='Refreshing\u2026';wantLive=true;fetchRates();setTimeout(function(){el.style.opacity='0';},1400);}else{el.style.opacity='0';}tsY=null;});
+document.addEventListener('touchend',function(e){var el=$('ptr');if(tsY!=null&&(e.changedTouches[0].clientY-tsY)>70){el.textContent='Refreshing\u2026';fetchRates();setTimeout(function(){el.style.opacity='0';},1400);}else{el.style.opacity='0';}tsY=null;});
+
+function openModal(){$('modalRate').value=$('manualRate').value||'';$('priceModal').style.display='flex';setTimeout(function(){$('modalRate').focus();},60);}
+function closeModal(){$('priceModal').style.display='none';}
+$('customBtn').onclick=openModal;
+$('modalCancel').onclick=closeModal;
+$('priceModal').addEventListener('click',function(e){if(e.target===$('priceModal'))closeModal();});
+$('modalRate').addEventListener('input',function(){var el=$('modalRate');var cl=el.value.replace(/[^0-9.]/g,'');if(cl!==el.value)el.value=cl;});
+$('modalSet').onclick=function(){var v=parseFloat($('modalRate').value);if(v>0){$('manualRate').value=$('modalRate').value;}closeModal();render();};
+$('liveBtn').onclick=function(){$('manualRate').value='';render();};
 (function(){var sel=$('citySel');CITIES.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});loadSet();if(loadRate())live.src='Last live rate';render();fetchRates();})();
 </script>
 </body>

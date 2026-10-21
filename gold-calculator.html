@@ -86,7 +86,7 @@
     <div class="src"><span id="srcLine">Fetching live rate&hellip;</span><button type="button" id="refreshBtn">Refresh</button><span>&middot; Gold Calculator by JGold</span></div>
     <div class="crow">
       <span class="clbl">CUSTOM RATE (Rs / TOLA)</span>
-      <input type="text" id="manualRate" class="cin" inputmode="numeric" placeholder="Empty = live rate">
+      <input type="text" id="manualRate" class="cin" inputmode="numeric" placeholder="Empty = live">
     </div>
     <div class="note">If the live rate is slightly off, type your own rate here — every calculation then uses your rate, even without internet. Press Refresh or pull down to go back to the live rate.</div>
 
@@ -220,7 +220,7 @@ function fetchRates(){
     live.intl=a[0]*a[1]/OZ*STD;live.src='Live Rate';live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     if(wantLive){$('manualRate').value='';wantLive=false;}
     saveRate();render();
-  }).catch(function(){wantLive=false;live.src=live.intl!=null?'No internet — showing last live rate':'No internet — enter your own rate above to calculate offline';render();});
+  }).catch(function(){wantLive=false;live.src=live.intl!=null?'No internet — showing last live rate':'No internet — enter your own rate below to calculate offline';render();});
 }
 $('refreshBtn').onclick=function(){wantLive=true;fetchRates();};
 $('citySel').addEventListener('change',function(){S.city=$('citySel').value;render();});

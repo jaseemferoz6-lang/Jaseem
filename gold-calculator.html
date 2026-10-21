@@ -107,7 +107,7 @@
       <button type="button" class="pbtn" id="customBtn">Set Custom Price</button>
       <button type="button" class="pbtn" id="liveBtn">Set Live Rates</button>
     </div>
-    <div class="note">Your custom price stays saved and is used for every calculation — even without internet — until you tap Set Live Rates. Refresh only freshens the live rate; it never removes your custom price.</div>
+    <div class="note">Your custom price works only while the calculator stays open. Close it and the live rate comes back by itself — if you want a custom price, set it again each time you open the calculator. Refresh only freshens the live rate; it never removes your custom price while the calculator is open.</div>
     <input type="hidden" id="manualRate">
     <div class="modal" id="priceModal" style="display:none">
       <div class="mbox">
@@ -227,8 +227,8 @@ function gramsOf(){var w=parseFloat($('weightIn').value)||0;if(S.unit==='Tola')r
 function manual(){var v=parseFloat($('manualRate').value);return v>0?v:null;}
 function perGram24(){var m=manual();if(m!=null)return m/tolaG();if(live.intl==null)return null;return live.intl/STD;}
 function calc(){var pg=perGram24();if(pg==null)return null;return gramsOf()*pg*KF[S.karat];}
-function saveSet(){try{localStorage.setItem('jgold-set',JSON.stringify({m:$('manualRate').value,tw:$('tolaWeight').value,w:$('weightIn').value,cp:$('customPct').value,ct:S.city,kr:S.karat,un:S.unit}));}catch(e){}}
-function loadSet(){try{var j=JSON.parse(localStorage.getItem('jgold-set')||'null');if(!j)return;if(j.m)$('manualRate').value=j.m;if(j.tw)$('tolaWeight').value=j.tw;if(j.w)$('weightIn').value=j.w;if(j.cp)$('customPct').value=j.cp;if(j.ct)S.city=j.ct;if(j.kr)S.karat=j.kr;if(j.un)S.unit=j.un;}catch(e){}}
+function saveSet(){try{localStorage.setItem('jgold-set',JSON.stringify({m:'',tw:$('tolaWeight').value,w:$('weightIn').value,cp:$('customPct').value,ct:S.city,kr:S.karat,un:S.unit}));}catch(e){}}
+function loadSet(){try{var j=JSON.parse(localStorage.getItem('jgold-set')||'null');if(!j)return;$('manualRate').value='';if(j.tw)$('tolaWeight').value=j.tw;if(j.w)$('weightIn').value=j.w;if(j.cp)$('customPct').value=j.cp;if(j.ct)S.city=j.ct;if(j.kr)S.karat=j.kr;if(j.un)S.unit=j.un;}catch(e){}}
 function saveRate(){try{localStorage.setItem('jgold-rate',JSON.stringify({i:live.intl,t:live.time}));}catch(e){}}
 function loadRate(){try{var j=JSON.parse(localStorage.getItem('jgold-rate')||'null');if(!j)return false;live.intl=j.i;live.time=j.t;return live.intl!=null;}catch(e){return false;}}
 function unitsRender(){var el=$('units');el.innerHTML='';UNITS.forEach(function(u){var b=document.createElement('button');b.type='button';b.className='chip'+(u===S.unit?' on':'');b.textContent=u;b.onclick=function(){S.unit=u;render();};el.appendChild(b);});}

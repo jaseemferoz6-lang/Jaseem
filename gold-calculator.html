@@ -142,13 +142,13 @@ function calc(){
   return r*k*(g/STD);
 }
 function render(){
-  chips('markets',MARKETS,S.market,false,function(v){S.market=v;render();});
+  chips('markets',MARKETS,S.market,false,function(v){S.market=v;pickBoard();render();});
   chips('karats',Object.keys(KF),S.karat,false,function(v){S.karat=v;render();});
   chips('units',UNITS,S.unit,true,function(v){S.unit=v;render();});
   var m=manual(),rb=$('rateBig'),rs=$('rateSub');
   if(m!=null){rb.textContent=fmt(m);rs.textContent='per Tola (your custom tola weight) · Manual rate';}
   else{var r=liveRate();if(r==null){rb.textContent='—';rs.textContent='Live rate unavailable — please enter your own rate above';}
-  else{rb.textContent=fmt(r);rs.textContent='per Tola (standard 11.664 g) · 24K · '+(S.market==='International'?'International spot':'Pakistan Sarafa — '+S.market);}}
+  else{rb.textContent=fmt(r);rs.textContent='per Tola (standard 11.664 g) · 24K · '+(S.market==='International'?'International spot':'Live market — '+S.market);}}
   $('srcLine').textContent=(m!=null?'Manual rate in use':(live.src?live.src+(live.time?' · '+live.time:''):''));
   var g=gramsOf();
   $('wBreak').textContent='= '+g.toFixed(3)+' grams · '+(g/tolaG()).toFixed(3)+' tola (custom) · '+(g/STD).toFixed(3)+' tola (standard)';
@@ -164,12 +164,30 @@ function render(){
   if(v!=null&&isFinite(cp)&&cp>0&&cp<100){var n2=v*(1-cp/100);$('cPct').textContent=cp+'% cutting';$('cCut').textContent='Deduction '+fmt(v-n2);$('cNet').textContent=fmt(n2);}
   else{$('cPct').textContent='—';$('cCut').textContent='';$('cNet').textContent='—';}
 }
+function pickBoard(){
+  if(!live.page) return;
+  var clean=live.page, v=null, city=S.market;
+  if(city!=='International'){
+    var idx=clean.toLowerCase().indexOf(city.toLowerCase());
+    if(idx>=0){
+      var seg=clean.slice(idx,idx+1500);
+      var m=seg.match(/24\s*Karat[\s\S]{0,220}?([0-9]{6,})/i);
+      if(m) v=parseFloat(m[1]);
+    }
+  }
+  if(v==null){
+    var m2=clean.match(/24\s*Karat[\s\S]{0,220}?([0-9]{6,})/i);
+    if(m2) v=parseFloat(m2[1]);
+  }
+  if(v!=null&&v>100000&&v<2000000) live.board=v; else if(city!=='International') live.board=null;
+}
 function fetchBoard(){
-  var u='https://api.allorigins.win/raw?url='+encodeURIComponent('https://hamariweb.com/finance/gold_rate/');
+  var u='https://api.allorigins.win/raw?url='+encodeURIComponent('https://www.urdupoint.com/business/gold-rate.html');
   fetch(u).then(function(r){return r.text();}).then(function(t){
-    var clean=t.replace(/,/g,'');
-    var m=clean.match(/24\s*Karat[\s\S]{0,160}?Rs\.?\s*([0-9]{6,})/i)||clean.match(/Gold\s*Rate[\s\S]{0,200}?Rs\.?\s*([0-9]{6,})/i);
-    if(m){var v=parseFloat(m[1]);if(v>100000&&v<2000000){live.board=v;live.src='Pakistan Sarafa board (live via HamariWeb)';live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});render();}}
+    live.page=t.replace(/,/g,'');
+    pickBoard();
+    if(live.board!=null) live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    render();
   }).catch(function(){});
 }
 function fetchRates(){
@@ -178,7 +196,7 @@ function fetchRates(){
     .catch(function(){return fetch('https://data-asg.goldprice.org/dbXRates/USD').then(function(r){return r.json();}).then(function(j){return j.items[0].xauPrice;});});
   var p2=fetch('https://open.er-api.com/v6/latest/USD').then(function(r){return r.json();}).then(function(j){return j.rates.PKR;});
   Promise.all([p1,p2]).then(function(a){
-    live.intl=a[0]*a[1]/OZ*STD;live.src='International spot (live)';live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    live.intl=a[0]*a[1]/OZ*STD;live.src='Live Rate';live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     render();fetchBoard();
   }).catch(function(){live.src='Live rate could not load — please enter your own rate above';render();});
 }

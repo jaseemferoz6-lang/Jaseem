@@ -126,7 +126,7 @@
         <div class="rtot"><span id="resYour">Your —</span><b id="resTot">—</b></div>
         <div class="share">
           <button type="button" id="copyBtn">Copy</button>
-          <button type="button" class="wa" id="waBtn">WhatsApp</button>
+          <button type="button" class="wa" id="waBtn">WhatsApp +92 315 4400102</button>
         </div>
       </div>
     </div>
@@ -231,7 +231,7 @@ $('calcBtn').onclick=function(){render();var p=$('resultPanel');p.classList.remo
 $('resetBtn').onclick=function(){$('weightIn').value='';$('manualRate').value='';$('customPct').value='';S.city='Peshawar';S.karat='24K';S.unit='Gram';render();};
 function summary(){var v=calc();var w=$('weightIn').value||'0';return 'Gold Calculator by JGold — '+S.karat+' · '+S.city+': '+w+' '+S.unit.toLowerCase()+' = '+fmt(v)+' (Rate '+fmt(perGram24()*tolaG())+' per tola) — jaseem.store/gold-calculator.html';}
 $('copyBtn').onclick=function(){var t=summary();if(navigator.clipboard)navigator.clipboard.writeText(t);$('copyBtn').textContent='Copied ✓';setTimeout(function(){$('copyBtn').textContent='Copy';},1600);};
-$('waBtn').onclick=function(){window.open('https://wa.me/?text='+encodeURIComponent(summary()),'_blank');};
+$('waBtn').onclick=function(){window.open('https://wa.me/923154400102?text='+encodeURIComponent(summary()),'_blank');};
 
 var tsY=null;
 document.addEventListener('touchstart',function(e){if(window.scrollY<=0)tsY=e.touches[0].clientY;},{passive:true});

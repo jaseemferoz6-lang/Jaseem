@@ -141,6 +141,10 @@ function calc(){
   var r=liveRate();if(r==null)return null;
   return r*k*(g/STD);
 }
+function saveSet(){try{localStorage.setItem('jgold-set',JSON.stringify({m:$('manualRate').value,tw:$('tolaWeight').value,w:$('weightIn').value,cp:$('customPct').value,mk:S.market,kr:S.karat,un:S.unit}));}catch(e){}}
+function loadSet(){try{var j=JSON.parse(localStorage.getItem('jgold-set')||'null');if(!j)return;if(j.m)$('manualRate').value=j.m;if(j.tw)$('tolaWeight').value=j.tw;if(j.w)$('weightIn').value=j.w;if(j.cp)$('customPct').value=j.cp;if(j.mk)S.market=j.mk;if(j.kr)S.karat=j.kr;if(j.un)S.unit=j.un;}catch(e){}}
+function saveRate(){try{localStorage.setItem('jgold-rate',JSON.stringify({i:live.intl,b:live.board,t:live.time}));}catch(e){}}
+function loadRate(){try{var j=JSON.parse(localStorage.getItem('jgold-rate')||'null');if(!j)return false;live.intl=j.i;live.board=j.b;live.time=j.t;return live.intl!=null||live.board!=null;}catch(e){return false;}}
 function render(){
   chips('markets',MARKETS,S.market,false,function(v){S.market=v;pickBoard();render();});
   chips('karats',Object.keys(KF),S.karat,false,function(v){S.karat=v;render();});
@@ -163,6 +167,7 @@ function render(){
   var cp=parseFloat($('customPct').value);
   if(v!=null&&isFinite(cp)&&cp>0&&cp<100){var n2=v*(1-cp/100);$('cPct').textContent=cp+'% cutting';$('cCut').textContent='Deduction '+fmt(v-n2);$('cNet').textContent=fmt(n2);}
   else{$('cPct').textContent='—';$('cCut').textContent='';$('cNet').textContent='—';}
+  saveSet();
 }
 function pickBoard(){
   if(!live.page) return;
@@ -186,7 +191,7 @@ function fetchBoard(){
   fetch(u).then(function(r){return r.text();}).then(function(t){
     live.page=t.replace(/,/g,'');
     pickBoard();
-    if(live.board!=null) live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    if(live.board!=null){ live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); saveRate(); }
     render();
   }).catch(function(){});
 }
@@ -196,9 +201,9 @@ function fetchRates(){
     .catch(function(){return fetch('https://data-asg.goldprice.org/dbXRates/USD').then(function(r){return r.json();}).then(function(j){return j.items[0].xauPrice;});});
   var p2=fetch('https://open.er-api.com/v6/latest/USD').then(function(r){return r.json();}).then(function(j){return j.rates.PKR;});
   Promise.all([p1,p2]).then(function(a){
-    live.intl=a[0]*a[1]/OZ*STD;live.src='Live Rate';live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    live.intl=a[0]*a[1]/OZ*STD;live.src='Live Rate';saveRate();live.time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     render();fetchBoard();
-  }).catch(function(){live.src='Live rate could not load — please enter your own rate above';render();});
+  }).catch(function(){live.src=(live.intl!=null||live.board!=null)?'No internet — showing last live rate':'No internet — enter your own rate above to calculate offline';render();});
 }
 ['manualRate','tolaWeight','weightIn','customPct'].forEach(function(id){$(id).addEventListener('input',render);});
 $('twCustom').onclick=function(){$('tolaWeight').value='12.150';render();};
@@ -206,7 +211,7 @@ $('twStd').onclick=function(){$('tolaWeight').value='11.664';render();};
 $('refreshBtn').onclick=fetchRates;
 $('tabVal').onclick=function(){$('tabVal').className='tab on';$('tabSell').className='tab';$('paneVal').style.display='';$('paneSell').style.display='none';};
 $('tabSell').onclick=function(){$('tabSell').className='tab on';$('tabVal').className='tab';$('paneSell').style.display='';$('paneVal').style.display='none';};
-render();fetchRates();
+loadSet();if(loadRate()){live.src='Last live rate';}render();fetchRates();
 </script>
 </body>
 </html>

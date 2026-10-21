@@ -55,12 +55,17 @@
   .tolarow{display:flex;align-items:center;gap:8px;margin-top:11px;font-weight:700;color:#4b5563;font-size:14.5px}
   .tola-in{width:96px !important;padding:9px 8px !important;text-align:center}
   .tola-std{margin-left:auto;background:none;border:none;color:#a07c14;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;padding:4px}
+  #ptr{text-align:center;font-size:12px;color:#a07c14;font-weight:700;opacity:0;transition:opacity .25s;padding:0 0 6px}
+  .crow{display:flex;align-items:center;gap:9px;margin-top:12px}
+  .clbl{font-size:11.5px;font-weight:800;letter-spacing:.8px;color:#6b7280;white-space:nowrap}
+  .cin{max-width:180px;padding:9px 10px !important}
   .flash{animation:fl .7s ease}
   @keyframes fl{0%{box-shadow:0 0 0 0 rgba(212,175,55,.55)}100%{box-shadow:0 0 0 16px rgba(212,175,55,0)}}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div id="ptr">&#8595; Pull down to refresh live rate</div>
   <div class="topbar">
     <a class="home" href="index.html">&larr; Home</a>
     <span class="brand">JASEEM.STORE</span>
@@ -79,6 +84,11 @@
       </div>
     </div>
     <div class="src"><span id="srcLine">Fetching live rate&hellip;</span><button type="button" id="refreshBtn">Refresh</button><span>&middot; Gold Calculator by JGold</span></div>
+    <div class="crow">
+      <span class="clbl">CUSTOM RATE (Rs / TOLA)</span>
+      <input type="text" id="manualRate" class="cin" inputmode="numeric" placeholder="Empty = live rate">
+    </div>
+    <div class="note">If the live rate is slightly off, type your own rate here — every calculation then uses your rate, even without internet. Press Refresh or pull down to go back to the live rate.</div>
 
     <div class="grid">
       <div>
@@ -104,9 +114,6 @@
           <button type="button" class="calc" id="calcBtn">Calculate</button>
           <button type="button" class="reset" id="resetBtn">Reset</button>
         </div>
-        <div class="lbl" style="margin-top:18px">YOUR OWN RATE (Rs PER TOLA) — OPTIONAL</div>
-        <input type="text" id="manualRate" inputmode="numeric" placeholder="e.g. 429500">
-        <div class="note">If you type a rate here, all calculations use your rate instead of the live rate. Press Refresh any time to remove your rate and go back to the live rate. Your rate also works fully offline.</div>
       </div>
 
       <div class="result" id="resultPanel">
@@ -225,6 +232,11 @@ $('resetBtn').onclick=function(){$('weightIn').value='';$('manualRate').value=''
 function summary(){var v=calc();var w=$('weightIn').value||'0';return 'Gold Calculator by JGold — '+S.karat+' · '+S.city+': '+w+' '+S.unit.toLowerCase()+' = '+fmt(v)+' (Rate '+fmt(perGram24()*tolaG())+' per tola) — jaseem.store/gold-calculator.html';}
 $('copyBtn').onclick=function(){var t=summary();if(navigator.clipboard)navigator.clipboard.writeText(t);$('copyBtn').textContent='Copied ✓';setTimeout(function(){$('copyBtn').textContent='Copy';},1600);};
 $('waBtn').onclick=function(){window.open('https://wa.me/?text='+encodeURIComponent(summary()),'_blank');};
+
+var tsY=null;
+document.addEventListener('touchstart',function(e){if(window.scrollY<=0)tsY=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchmove',function(e){if(tsY==null)return;var dy=e.touches[0].clientY-tsY;var el=$('ptr');if(dy>10){el.style.opacity='1';el.textContent=dy>70?'\u2191 Release to refresh':'\u2193 Pull down to refresh live rate';}},{passive:true});
+document.addEventListener('touchend',function(e){var el=$('ptr');if(tsY!=null&&(e.changedTouches[0].clientY-tsY)>70){el.textContent='Refreshing\u2026';wantLive=true;fetchRates();setTimeout(function(){el.style.opacity='0';},1400);}else{el.style.opacity='0';}tsY=null;});
 (function(){var sel=$('citySel');CITIES.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});loadSet();if(loadRate())live.src='Last live rate';render();fetchRates();})();
 </script>
 </body>

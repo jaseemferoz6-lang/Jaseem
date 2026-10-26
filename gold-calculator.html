@@ -90,6 +90,18 @@
   .tola-in{width:84px !important}
   .tola-std{white-space:nowrap;height:auto;min-height:42px;font-size:13.5px;padding:10px 13px}
 </style>
+
+<style>
+  /* ===== TREND STACK (24H/48H/7D) — final design, title ke right ===== */
+  .chead{row-gap:7px}
+  .trendcol{display:flex;flex-direction:column;gap:2px;margin-left:auto;zoom:0.95}
+  .trow{display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:102px;background:linear-gradient(180deg,#fdf8ea,#faf2da);border:1px solid #e7d9ac;border-radius:6px;padding:0 6px;line-height:1.05}
+  .trow span{font-size:8px;font-weight:800;letter-spacing:1px;color:#a07c14}
+  .trow b{font-size:10.5px;font-weight:800;color:#8a8a8a}
+  .trow.up b{color:#1c7a33}
+  .trow.down b{color:#c0392b}
+  .tno{display:none;align-items:center;justify-content:center;min-width:102px;height:41px;background:#f7f3e8;border:1px solid #ddd3ae;border-radius:6px;font-size:9.5px;font-weight:800;letter-spacing:1.2px;color:#9a8a5f}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -104,6 +116,12 @@
       <div>
         <div class="kick">&#9670; LIVE GOLD RATE &middot; PAKISTAN</div>
         <h2>Gold Price Calculator</h2>
+      </div>
+      <div class="trendcol" id="trendCol">
+        <div class="trow" id="tr24"><span>24H</span><b>&middot;&middot;&middot;</b></div>
+        <div class="trow" id="tr48"><span>48H</span><b>&middot;&middot;&middot;</b></div>
+        <div class="trow" id="tr7d"><span>7D</span><b>&middot;&middot;&middot;</b></div>
+        <div class="tno" id="trNo">No Internet</div>
       </div>
       <div class="ratechips">
         <div class="rchip"><span>24K / TOLA</span><b id="rc24">—</b></div>
@@ -272,7 +290,33 @@ function render(){
 </script>
 
 <script>
+
+function trendShow(ok){
+  ['tr24','tr48','tr7d'].forEach(function(id){$(id).style.display=ok?'flex':'none';});
+  $('trNo').style.display=ok?'none':'flex';
+}
+function trendSet(id,pct){
+  var r=$(id);r.className='trow '+(pct>=0?'up':'down');
+  r.querySelector('b').textContent=(pct>=0?'\u25B2 ':'\u25BC ')+Math.abs(pct).toFixed(2)+'%';
+}
+function fetchTrend(){
+  var spot=fetch('https://api.gold-api.com/price/XAU',{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){return j.price;})
+    .catch(function(){return fetch('https://data-asg.goldprice.org/dbXRates/USD',{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){return j.items[0].xauPrice;});});
+  var hist=fetch('https://jaseem.store/gold-history.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){return j.closes;});
+  Promise.all([spot,hist]).then(function(a){
+    var now=a[0],cl=a[1];
+    if(!now||!cl||cl.length<3)throw 0;
+    var n=cl.length,last=cl[n-1],prev=cl[n-2];
+    var target=new Date(last[0]+'T00:00:00Z');target.setUTCDate(target.getUTCDate()-7);
+    var ref7=cl[0];for(var i=n-1;i>=0;i--){if(new Date(cl[i][0]+'T00:00:00Z')<=target){ref7=cl[i];break;}}
+    trendSet('tr24',(now/last[1]-1)*100);
+    trendSet('tr48',(now/prev[1]-1)*100);
+    trendSet('tr7d',(now/ref7[1]-1)*100);
+    trendShow(true);
+  }).catch(function(){trendShow(false);});
+}
 function fetchRates(){
+  try{fetchTrend();}catch(e){}
   live.src='Fetching live rate…';render();
   var p1=fetch('https://api.gold-api.com/price/XAU').then(function(r){return r.json();}).then(function(j){return j.price;})
     .catch(function(){return fetch('https://data-asg.goldprice.org/dbXRates/USD').then(function(r){return r.json();}).then(function(j){return j.items[0].xauPrice;});});

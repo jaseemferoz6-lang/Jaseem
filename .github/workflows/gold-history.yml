@@ -1,0 +1,47 @@
+name: Update gold history
+
+on:
+  schedule:
+    - cron: '15 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch daily gold closes and rewrite gold-history.json
+        run: |
+          curl -s -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" "https://query2.finance.yahoo.com/v8/finance/chart/GC=F?range=3mo&interval=1d" -o /tmp/gc.json || \
+          curl -s -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range=3mo&interval=1d" -o /tmp/gc.json
+          python3 - << 'PY'
+          import json, datetime, os
+          d = json.load(open('/tmp/gc.json'))
+          r = d['chart']['result'][0]
+          ts, closes = r['timestamp'], r['indicators']['quote'][0]['close']
+          rows = []
+          for t, c in zip(ts, closes):
+              if c is None:
+                  continue
+              dt = datetime.datetime.fromtimestamp(t, datetime.timezone.utc).date()
+              rows.append([str(dt), round(c, 2)])
+          rows = rows[-45:]
+          out = {"updated": rows[-1][0], "source": "COMEX gold daily closes, USD per troy ounce", "closes": rows}
+          new = json.dumps(out, indent=1)
+          old = open('gold-history.json').read() if os.path.exists('gold-history.json') else ''
+          if new != old:
+              open('gold-history.json', 'w').write(new)
+              print('history updated to', rows[-1][0])
+          else:
+              print('no change')
+          PY
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add gold-history.json
+          git diff --cached --quiet || git commit -m "Update gold history"
+          git push
